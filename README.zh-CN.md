@@ -242,7 +242,7 @@ scripts/main.js       # 可执行入口
 knowledge/            # 可选参考文件
 ```
 
-更细的说明见 [docs/architecture.md](docs/architecture.md)。
+更细的说明见 [docs/architecture.zh-CN.md](docs/architecture.zh-CN.md)。
 
 ---
 
