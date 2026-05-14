@@ -7,7 +7,7 @@ spring:
       max-file-size: 500MB
       max-request-size: 500MB
   datasource:
-    url: jdbc:sqlite:${user.home}/video-driven-skill/video-driven-skill.db
+    url: jdbc:sqlite:${app.data-dir}/video-driven-skill.db
     driver-class-name: org.sqlite.JDBC
   jpa:
     database-platform: org.hibernate.community.dialect.SQLiteDialect
@@ -16,9 +16,10 @@ spring:
     show-sql: false
 
 app:
-  upload-dir: ${user.home}/video-driven-skill/uploads
-  skills-dir: ${user.home}/video-driven-skill/skills
-  archive-dir: ${user.home}/video-driven-skill/archives
+  data-dir: ${VIDEO_DRIVEN_SKILL_HOME:${user.home}/video-driven-skill}
+  upload-dir: ${app.data-dir}/uploads
+  skills-dir: ${app.data-dir}/skills
+  archive-dir: ${app.data-dir}/archives
   ffmpeg-path: ${FFMPEG_PATH:ffmpeg}
   ai-api-key: ${AI_API_KEY:}
   ai-base-url: ${AI_BASE_URL:https://api.openai.com/v1}
