@@ -1,5 +1,6 @@
 package io.videodrivenskill.service;
 
+import io.videodrivenskill.exception.FFmpegNotAvailableException;
 import io.videodrivenskill.model.FrameInfo;
 import io.videodrivenskill.model.VideoArchive;
 import io.videodrivenskill.model.VideoUploadResponse;
@@ -42,7 +43,12 @@ public class VideoService {
     Path videoPath = uploadPath.resolve(filename);
     file.transferTo(videoPath);
 
-    long duration = getVideoDuration(videoPath.toString());
+    long duration = 0;
+    try {
+      duration = getVideoDuration(videoPath.toString());
+    } catch (FFmpegNotAvailableException e) {
+      log.warn("FFmpeg/ffprobe not available during upload, duration will be 0: {}", e.getMessage());
+    }
 
     return VideoUploadResponse.builder()
         .videoId(videoId)
@@ -112,9 +118,15 @@ public class VideoService {
         outputPath
     );
 
-    ProcessBuilder pb = new ProcessBuilder(cmd);
-    pb.redirectErrorStream(true);
-    Process process = pb.start();
+    Process process;
+    try {
+      ProcessBuilder pb = new ProcessBuilder(cmd);
+      pb.redirectErrorStream(true);
+      process = pb.start();
+    } catch (IOException e) {
+      FFmpegNotAvailableException.throwIfFFmpegNotFound(e);
+      throw e;
+    }
 
     // consume output
     process.getInputStream().transferTo(OutputStream.nullOutputStream());
@@ -123,6 +135,10 @@ public class VideoService {
     if (!finished) {
       process.destroyForcibly();
       throw new IOException("FFmpeg timeout for timestamp: " + timestamp);
+    }
+
+    if (process.exitValue() != 0) {
+      throw new IOException("FFmpeg exited with code " + process.exitValue() + " for timestamp: " + timestamp);
     }
   }
 
@@ -145,6 +161,9 @@ public class VideoService {
 
       return (long) Double.parseDouble(output);
     } catch (Exception e) {
+      if (e instanceof IOException io) {
+        FFmpegNotAvailableException.throwIfFFmpegNotFound(io);
+      }
       log.warn("Failed to get video duration: {}", e.getMessage());
       return 0;
     }

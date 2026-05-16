@@ -1,22 +1,21 @@
 package io.videodrivenskill.controller;
 
+import io.videodrivenskill.model.ApiError;
 import io.videodrivenskill.model.FrameExtractRequest;
 import io.videodrivenskill.model.FrameInfo;
-import io.videodrivenskill.model.VideoUploadResponse;
 import io.videodrivenskill.service.VideoService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
 
 @Slf4j
 @RestController
@@ -27,40 +26,42 @@ public class VideoController {
   private final VideoService videoService;
 
   @PostMapping("/upload")
-  public ResponseEntity<VideoUploadResponse> uploadVideo(@RequestParam("file") MultipartFile file) {
+  public ResponseEntity<?> uploadVideo(@RequestParam("file") MultipartFile file) {
     try {
-      VideoUploadResponse response = videoService.uploadVideo(file);
-      return ResponseEntity.ok(response);
-    } catch (Exception e) {
+      return ResponseEntity.ok(videoService.uploadVideo(file));
+    } catch (IOException e) {
       log.error("Failed to upload video", e);
-      return ResponseEntity.internalServerError().build();
+      return ResponseEntity.internalServerError()
+          .body(ApiError.builder().message("上传失败: " + e.getMessage()).build());
     }
   }
 
   @PostMapping("/{videoId}/frames/auto")
-  public ResponseEntity<List<FrameInfo>> extractFramesAuto(
+  public ResponseEntity<?> extractFramesAuto(
       @PathVariable String videoId,
       @RequestBody(required = false) FrameExtractRequest request) {
     try {
       int interval = request != null ? request.getIntervalSeconds() : 3;
       List<FrameInfo> frames = videoService.extractFramesAuto(videoId, interval);
       return ResponseEntity.ok(frames);
-    } catch (Exception e) {
+    } catch (IOException | InterruptedException e) {
       log.error("Failed to extract frames for video: {}", videoId, e);
-      return ResponseEntity.internalServerError().build();
+      return ResponseEntity.internalServerError()
+          .body(ApiError.builder().message("抽帧失败: " + e.getMessage()).build());
     }
   }
 
   @PostMapping("/{videoId}/frames/manual")
-  public ResponseEntity<List<FrameInfo>> extractFramesManual(
+  public ResponseEntity<?> extractFramesManual(
       @PathVariable String videoId,
       @RequestBody FrameExtractRequest request) {
     try {
       List<FrameInfo> frames = videoService.extractFramesManual(videoId, request.getTimestamps());
       return ResponseEntity.ok(frames);
-    } catch (Exception e) {
+    } catch (IOException | InterruptedException e) {
       log.error("Failed to extract manual frames for video: {}", videoId, e);
-      return ResponseEntity.internalServerError().build();
+      return ResponseEntity.internalServerError()
+          .body(ApiError.builder().message("抽帧失败: " + e.getMessage()).build());
     }
   }
 
