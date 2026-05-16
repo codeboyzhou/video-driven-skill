@@ -1,5 +1,5 @@
-ARG MAVEN_IMAGE=docker.m.daocloud.io/library/maven:3.9-eclipse-temurin-17
-ARG JRE_IMAGE=docker.m.daocloud.io/library/amazoncorretto:17-alpine-jdk
+ARG MAVEN_IMAGE=maven:3.9-eclipse-temurin-17
+ARG JRE_IMAGE=amazoncorretto:17-alpine-jdk
 
 FROM ${MAVEN_IMAGE} AS build
 WORKDIR /app

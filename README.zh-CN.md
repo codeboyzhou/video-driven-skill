@@ -102,6 +102,14 @@ docker compose up --build
 
 浏览器访问 **http://localhost:3000**。数据保存在 Docker 卷 `app-data` 中。
 
+**中国大陆**：若拉取基础镜像超时，可改用镜像加速：
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.cn.yml up --build
+```
+
+或在 Docker Desktop → **Docker Engine** 中配置 `registry-mirrors` 并设置 `"ipv6": false`。
+
 ---
 
 ### 从源码运行
@@ -210,6 +218,7 @@ video-driven-skill/
 ├── backend/                 # Spring Boot — API、视频处理、AI、技能运行器
 ├── frontend/                # React + Vite — 工作室前端
 ├── docker-compose.yml       # 一键 Docker 部署
+├── docker-compose.cn.yml    # 可选：国内镜像加速
 ├── docs/                    # 文档与截图
 ├── scripts/
 │   └── kill-midscene.sh     # 可选清理辅助脚本

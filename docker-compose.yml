@@ -1,6 +1,8 @@
 services:
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     environment:
       VIDEO_DRIVEN_SKILL_HOME: /data
       AI_API_KEY: ${AI_API_KEY:-}
@@ -20,7 +22,9 @@ services:
     restart: unless-stopped
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     ports:
       - "${APP_PORT:-3000}:80"
     depends_on:

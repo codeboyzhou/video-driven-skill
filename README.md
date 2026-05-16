@@ -102,6 +102,14 @@ docker compose up --build
 
 Open **http://localhost:3000**. Data is stored in the Docker volume `app-data`.
 
+**Slow Docker Hub pulls?** Use the optional China mirror overlay:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.cn.yml up --build
+```
+
+Or configure `registry-mirrors` in your Docker daemon settings.
+
 ---
 
 ### From source
@@ -210,6 +218,7 @@ video-driven-skill/
 ├── backend/                 # Spring Boot — API, video processing, AI, skill runner
 ├── frontend/                # React + Vite — studio UI
 ├── docker-compose.yml       # One-command Docker deployment
+├── docker-compose.cn.yml    # Optional mirror overlay (slow Docker Hub)
 ├── docs/                    # Documentation & screenshots
 ├── scripts/
 │   └── kill-midscene.sh     # Optional cleanup helper
