@@ -43,7 +43,12 @@ public class VideoService {
     Path videoPath = uploadPath.resolve(filename);
     file.transferTo(videoPath);
 
-    long duration = getVideoDuration(videoPath.toString());
+    long duration = 0;
+    try {
+      duration = getVideoDuration(videoPath.toString());
+    } catch (FFmpegNotAvailableException e) {
+      log.warn("FFmpeg/ffprobe not available during upload, duration will be 0: {}", e.getMessage());
+    }
 
     return VideoUploadResponse.builder()
         .videoId(videoId)
@@ -156,6 +161,9 @@ public class VideoService {
 
       return (long) Double.parseDouble(output);
     } catch (Exception e) {
+      if (e instanceof IOException io) {
+        FFmpegNotAvailableException.throwIfFFmpegNotFound(io);
+      }
       log.warn("Failed to get video duration: {}", e.getMessage());
       return 0;
     }

@@ -3,7 +3,6 @@ package io.videodrivenskill.controller;
 import io.videodrivenskill.model.ApiError;
 import io.videodrivenskill.model.FrameExtractRequest;
 import io.videodrivenskill.model.FrameInfo;
-import io.videodrivenskill.model.VideoUploadResponse;
 import io.videodrivenskill.service.VideoService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,13 +26,13 @@ public class VideoController {
   private final VideoService videoService;
 
   @PostMapping("/upload")
-  public ResponseEntity<VideoUploadResponse> uploadVideo(@RequestParam("file") MultipartFile file) {
+  public ResponseEntity<?> uploadVideo(@RequestParam("file") MultipartFile file) {
     try {
-      VideoUploadResponse response = videoService.uploadVideo(file);
-      return ResponseEntity.ok(response);
-    } catch (Exception e) {
+      return ResponseEntity.ok(videoService.uploadVideo(file));
+    } catch (IOException e) {
       log.error("Failed to upload video", e);
-      return ResponseEntity.internalServerError().build();
+      return ResponseEntity.internalServerError()
+          .body(ApiError.builder().message("上传失败: " + e.getMessage()).build());
     }
   }
 
