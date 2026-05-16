@@ -13,6 +13,7 @@ import SkillList from '../components/SkillList.jsx'
 import SkillRunner from '../components/SkillRunner.jsx'
 import ArchiveBrowser from '../components/ArchiveBrowser.jsx'
 import SaveResourceButton from '../components/SaveResourceButton.jsx'
+import FFmpegMissingDialog from '../components/FFmpegMissingDialog.jsx'
 import { extractFramesAuto, extractFramesManual, uploadVideo } from '../api/client.js'
 
 export default function PlaygroundPage() {
@@ -34,6 +35,7 @@ export default function PlaygroundPage() {
   const [interval, setInterval] = useState(3)
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [ffmpegDialogMessage, setFFmpegDialogMessage] = useState(null)
 
   const fileInputRef = useRef()
 
@@ -44,7 +46,7 @@ export default function PlaygroundPage() {
   const handleExtractFailure = (e) => {
     setExtractError(e.message)
     if (e.code === 'FFMPEG_NOT_FOUND') {
-      alert(e.message)
+      setFFmpegDialogMessage(e.message)
     }
   }
 
@@ -299,6 +301,12 @@ export default function PlaygroundPage() {
           </div>
         )}
       </div>
+
+      <FFmpegMissingDialog
+        open={!!ffmpegDialogMessage}
+        message={ffmpegDialogMessage || ''}
+        onClose={() => setFFmpegDialogMessage(null)}
+      />
     </div>
   )
 }
