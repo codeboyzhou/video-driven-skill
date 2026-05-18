@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import useAppStore from '../store/useAppStore.js'
 import { fetchSkillList, getSkill, deleteSkill, reorderSkills } from '../api/client.js'
 import { GripVertical } from 'lucide-react'
@@ -17,6 +18,7 @@ function formatDate(iso) {
 }
 
 export default function SkillList() {
+  const { t } = useTranslation()
   const skillList = useAppStore(s => s.skillList)
   const setSkillList = useAppStore(s => s.setSkillList)
   const setSkill = useAppStore(s => s.setSkill)
@@ -45,13 +47,13 @@ export default function SkillList() {
 
   const handleDelete = async (e, skillId, skillName) => {
     e.stopPropagation()
-    if (!confirm(`确定要删除 Skill "${skillName}" 吗？\n此操作不可恢复。`)) return
+    if (!confirm(t('skillList.deleteConfirm', { name: skillName }))) return
     setDeletingId(skillId)
     try {
       await deleteSkill(skillId)
       if (currentSkillId === skillId) setSkill(null, null, [], [])
       loadSkillList()
-    } catch (err) { alert('删除失败：' + err.message) }
+    } catch (err) { alert(t('common.deleteFailed', { message: err.message })) }
     finally { setDeletingId(null) }
   }
 
@@ -62,7 +64,7 @@ export default function SkillList() {
       await reorderSkills(nextList.map(skill => skill.skillId))
     } catch (err) {
       setSkillList(previousList)
-      setOrderError('排序保存失败')
+      setOrderError(t('skillList.orderSaveFailed'))
       setTimeout(() => setOrderError(''), 1800)
     } finally {
       setSavingOrder(false)
@@ -107,14 +109,14 @@ export default function SkillList() {
   }
 
   if (skillList.length === 0) {
-    return <p className='text-ink-400 text-sm text-center py-4'>暂无历史 Skill</p>
+    return <p className='text-ink-400 text-sm text-center py-4'>{t('skillList.empty')}</p>
   }
 
   return (
     <div className='space-y-2'>
       <div className='flex items-center justify-between px-1'>
-        <span className='text-[11px] text-ink-400'>拖拽左侧手柄调整顺序</span>
-        {savingOrder && <span className='text-[11px] text-umber-600'>保存中...</span>}
+        <span className='text-[11px] text-ink-400'>{t('skillList.dragHint')}</span>
+        {savingOrder && <span className='text-[11px] text-umber-600'>{t('common.saving')}</span>}
         {orderError && <span className='text-[11px] text-clay-500'>{orderError}</span>}
       </div>
 
@@ -139,7 +141,7 @@ export default function SkillList() {
             >
               <div
                 className='mt-0.5 flex h-7 w-5 shrink-0 items-center justify-center rounded text-ink-300 hover:bg-paper-200 hover:text-ink-700 cursor-grab active:cursor-grabbing'
-                title='拖拽调整顺序'
+                title={t('skillList.dragHint')}
                 onClick={(e) => e.stopPropagation()}
               >
                 <GripVertical className='h-3.5 w-3.5' />
@@ -176,7 +178,7 @@ export default function SkillList() {
                   ${deletingId === item.skillId
                     ? 'opacity-50 cursor-not-allowed'
                     : 'opacity-0 group-hover:opacity-100 hover:bg-clay-500/10 text-ink-400 hover:text-clay-500'}`}
-                title='删除'
+                title={t('common.delete')}
               >
                 {deletingId === item.skillId ? (
                   <span className='w-3 h-3 rounded-full border-2 border-ink-200 border-t-umber-500 animate-spin' />

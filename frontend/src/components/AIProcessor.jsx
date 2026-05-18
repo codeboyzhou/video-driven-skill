@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import useAppStore from '../store/useAppStore.js'
 import { generateSkill } from '../api/client.js'
 
 export default function AIProcessor() {
+  const { t } = useTranslation()
   const videoId = useAppStore(s => s.videoId)
   const frames = useAppStore(s => s.frames)
   const requirement = useAppStore(s => s.requirement)
@@ -104,13 +106,13 @@ export default function AIProcessor() {
           className='flex w-full items-center justify-between text-left'
         >
           <span>
-            <span className='eyebrow block'>视觉模型配置</span>
+            <span className='eyebrow block'>{t('aiProcessor.visionConfig')}</span>
             <span className='mt-1 block text-xs text-ink-400'>
-              {aiModel.trim() || '使用后端默认模型'}
+              {aiModel.trim() || t('aiProcessor.defaultModel')}
             </span>
           </span>
           <span className='rounded-full border border-ink-900/10 px-2.5 py-1 text-xs text-ink-500'>
-            {showModelConfig ? '收起' : '配置'}
+            {showModelConfig ? t('aiProcessor.collapse') : t('aiProcessor.configure')}
           </span>
         </button>
 
@@ -126,7 +128,7 @@ export default function AIProcessor() {
               />
             </label>
             <label className='block'>
-              <span className='mb-1 block text-xs text-ink-500'>视觉模型</span>
+              <span className='mb-1 block text-xs text-ink-500'>{t('aiProcessor.visionModel')}</span>
               <input
                 value={aiModel}
                 onChange={e => setAiModel(e.target.value)}
@@ -139,14 +141,14 @@ export default function AIProcessor() {
               <input
                 value={aiApiKey}
                 onChange={e => setAiApiKey(e.target.value)}
-                placeholder='不填写则使用后端 .env 的 AI_API_KEY'
+                placeholder={t('aiProcessor.apiKeyPlaceholder')}
                 type='password'
                 autoComplete='off'
                 className='w-full rounded-xl border border-ink-900/10 bg-paper-50 px-3 py-2 font-mono text-xs text-ink-900 outline-none transition-colors placeholder:text-ink-400 focus:border-umber-400'
               />
             </label>
             <p className='text-[11px] leading-relaxed text-ink-400'>
-              Base URL 和模型名会保存在本机浏览器；API Key 只在本次页面会话中保存，并随生成请求发送到本地后端。
+              {t('aiProcessor.configNote')}
             </p>
           </div>
         )}
@@ -163,16 +165,16 @@ export default function AIProcessor() {
         {isGenerating ? (
           <span className='flex items-center justify-center gap-2'>
             <span className='w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin' />
-            AI 正在分析...
+            {t('aiProcessor.analyzing')}
           </span>
-        ) : '生成 Skill'}
+        ) : t('aiProcessor.generateSkill')}
       </button>
 
       {!frames.length && (
-        <p className='text-center text-xs text-ink-400'>请先提取帧</p>
+        <p className='text-center text-xs text-ink-400'>{t('aiProcessor.needFrames')}</p>
       )}
       {frames.length > 0 && !requirement.trim() && (
-        <p className='text-center text-xs text-ink-400'>请填写用户诉求</p>
+        <p className='text-center text-xs text-ink-400'>{t('aiProcessor.needRequirement')}</p>
       )}
 
       {/* 日志输出区 */}

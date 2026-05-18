@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   blobToRecordingFile,
   formatRecordingDuration,
@@ -19,6 +20,7 @@ const PHASE = {
 }
 
 export default function ScreenRecorderModal({ open, onClose, onUpload }) {
+  const { t } = useTranslation()
   const [phase, setPhase] = useState(PHASE.CHECKING)
   const [error, setError] = useState(null)
   const [elapsed, setElapsed] = useState(0)
@@ -76,7 +78,7 @@ export default function ScreenRecorderModal({ open, onClose, onUpload }) {
       type: mimeTypeRef.current || 'video/webm',
     })
     if (!blob.size) {
-      setError('没有录到有效内容，请重试')
+      setError(t('recorder.emptyRecording'))
       setPhase(PHASE.ERROR)
       cleanupCapture()
       return
@@ -93,7 +95,7 @@ export default function ScreenRecorderModal({ open, onClose, onUpload }) {
       clearInterval(timerRef.current)
       timerRef.current = null
     }
-  }, [cleanupCapture])
+  }, [cleanupCapture, t])
 
   const stopRecording = useCallback(() => {
     const recorder = recorderRef.current
@@ -103,7 +105,7 @@ export default function ScreenRecorderModal({ open, onClose, onUpload }) {
 
   const startCapture = useCallback(async () => {
     if (!isScreenRecordingSupported()) {
-      setError('录屏需要在 HTTPS 或 localhost 下使用，且浏览器需支持屏幕共享')
+      setError(t('recorder.httpsRequired'))
       setPhase(PHASE.ERROR)
       return
     }
@@ -138,7 +140,7 @@ export default function ScreenRecorderModal({ open, onClose, onUpload }) {
       }
       recorder.onstop = finalizeRecording
       recorder.onerror = () => {
-        setError('录制过程中出错，请重试')
+        setError(t('recorder.recordingError'))
         setPhase(PHASE.ERROR)
         cleanupCapture()
       }
@@ -167,7 +169,7 @@ export default function ScreenRecorderModal({ open, onClose, onUpload }) {
       setPhase(PHASE.ERROR)
       cleanupCapture()
     }
-  }, [cleanupCapture, finalizeRecording, onClose, resetModal, stopRecording])
+  }, [cleanupCapture, finalizeRecording, onClose, resetModal, stopRecording, t])
 
   useEffect(() => {
     if (!open) return undefined
@@ -207,31 +209,31 @@ export default function ScreenRecorderModal({ open, onClose, onUpload }) {
       resetModal()
       onClose()
     } catch (err) {
-      setError(err?.message || '上传失败，请重试')
+      setError(err?.message || t('recorder.uploadError'))
       setPhase(PHASE.PREVIEW)
     }
   }
 
-  if (!open) return null
+  const titleByPhase = useMemo(() => ({
+    [PHASE.PICKING]: t('recorder.phases.picking'),
+    [PHASE.RECORDING]: t('recorder.phases.recording'),
+    [PHASE.PREVIEW]: t('recorder.phases.preview'),
+    [PHASE.UPLOADING]: t('recorder.phases.uploading'),
+    [PHASE.ERROR]: t('recorder.phases.error'),
+    [PHASE.CHECKING]: t('recorder.phases.checking'),
+  }), [t])
 
-  const titleByPhase = {
-    [PHASE.PICKING]: '选择共享内容',
-    [PHASE.RECORDING]: '正在录制',
-    [PHASE.PREVIEW]: '预览录屏',
-    [PHASE.UPLOADING]: '上传中',
-    [PHASE.ERROR]: '无法录屏',
-    [PHASE.CHECKING]: '准备录屏',
-  }
+  if (!open) return null
 
   return (
     <div className='fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6'>
       <button
         type='button'
-        aria-label='关闭'
+        aria-label={t('common.close')}
         className='absolute inset-0 bg-ink-900/40 backdrop-blur-[4px] animate-fade-in'
         onClick={phase !== PHASE.UPLOADING ? handleClose : undefined}
       />
-      <motionDiv
+      <div
         role='dialog'
         aria-modal='true'
         aria-labelledby='screen-recorder-title'
@@ -246,13 +248,13 @@ export default function ScreenRecorderModal({ open, onClose, onUpload }) {
               className='font-display text-[26px] text-ink-900 mt-1'
               style={{ fontVariationSettings: "'opsz' 96" }}
             >
-              {titleByPhase[phase] || '屏幕录制'}
+              {titleByPhase[phase] || t('recorder.phases.default')}
             </h2>
           </div>
           {phase !== PHASE.UPLOADING && (
             <button
               type='button'
-              aria-label='关闭'
+              aria-label={t('common.close')}
               onClick={handleClose}
               className='shrink-0 w-9 h-9 rounded-full border hairline-strong text-ink-500 hover:text-ink-900 hover:bg-paper-200/80 transition-colors'
             >
@@ -266,7 +268,7 @@ export default function ScreenRecorderModal({ open, onClose, onUpload }) {
         {phase === PHASE.PICKING && (
           <div className='py-12 text-center'>
             <span className='inline-block w-8 h-8 rounded-full border-2 border-umber-500/30 border-t-umber-500 animate-spin mb-4' />
-            <p className='text-ink-600 text-sm'>请在浏览器弹窗中选择要共享的屏幕、窗口或标签页…</p>
+            <p className='text-ink-600 text-sm'>{t('recorder.pickHint')}</p>
           </div>
         )}
 
@@ -288,7 +290,7 @@ export default function ScreenRecorderModal({ open, onClose, onUpload }) {
         {phase === PHASE.UPLOADING && (
           <div className='py-10 text-center'>
             <RingProgress value={uploadProgress} />
-            <div className='mt-4 font-display text-xl text-ink-900'>正在上传录屏</div>
+            <div className='mt-4 font-display text-xl text-ink-900'>{t('recorder.uploadingTitle')}</div>
             <p className='mt-1 font-mono text-[11px] text-ink-400 tracking-wider'>{uploadProgress}%</p>
           </div>
         )}
@@ -299,25 +301,26 @@ export default function ScreenRecorderModal({ open, onClose, onUpload }) {
               {error}
             </div>
             <div className='flex justify-end gap-2'>
-              <button type='button' onClick={handleClose} className='btn-ghost'>取消</button>
-              <button type='button' onClick={startCapture} className='btn-primary'>重新选择屏幕</button>
+              <button type='button' onClick={handleClose} className='btn-ghost'>{t('common.cancel')}</button>
+              <button type='button' onClick={startCapture} className='btn-primary'>{t('recorder.retryPick')}</button>
             </div>
           </div>
         )}
-      </motionDiv>
+      </div>
     </div>
   )
 }
 
 function RecordingBody({ liveVideoRef, elapsed, onStop }) {
+  const { t } = useTranslation()
   return (
     <div className='space-y-4'>
       <div className='relative overflow-hidden rounded-xl border hairline bg-ink-900'>
         <video ref={liveVideoRef} className='w-full max-h-[min(40vh,320px)] object-contain' playsInline />
-        <motionDiv className='absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-ink-900/70 px-2.5 py-1 text-[11px] text-paper-50'>
+        <div className='absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-ink-900/70 px-2.5 py-1 text-[11px] text-paper-50'>
           <span className='h-1.5 w-1.5 rounded-full bg-clay-400' />
-          实时预览
-        </motionDiv>
+          {t('recorder.livePreview')}
+        </div>
       </div>
       <div className='flex flex-wrap items-center justify-between gap-3'>
         <div className='flex items-center gap-2'>
@@ -326,23 +329,24 @@ function RecordingBody({ liveVideoRef, elapsed, onStop }) {
             <span className='relative inline-flex h-2.5 w-2.5 rounded-full bg-clay-500' />
           </span>
           <span className='font-mono text-sm text-ink-900 tabular-nums'>{formatRecordingDuration(elapsed)}</span>
-          <span className='text-ink-400 text-xs'>录制中</span>
+          <span className='text-ink-400 text-xs'>{t('recorder.recording')}</span>
         </div>
         <button type='button' onClick={onStop} className='btn-primary'>
           <svg width='12' height='12' viewBox='0 0 24 24' fill='currentColor' aria-hidden>
             <rect x='6' y='6' width='12' height='12' rx='1' />
           </svg>
-          <span>停止录制</span>
+          <span>{t('recorder.stopRecording')}</span>
         </button>
       </div>
       <p className='text-[12px] text-ink-400 leading-relaxed'>
-        在浏览器工具栏结束共享也会停止录制。录屏内容仅在您确认后才会上传。
+        {t('recorder.stopNote')}
       </p>
     </div>
   )
 }
 
 function PreviewBody({ previewUrl, recordedBlob, elapsed, error, onRetake, onConfirm }) {
+  const { t } = useTranslation()
   return (
     <div className='space-y-4'>
       <video
@@ -352,9 +356,9 @@ function PreviewBody({ previewUrl, recordedBlob, elapsed, error, onRetake, onCon
         className='w-full rounded-xl border hairline bg-ink-900/5 max-h-[min(52vh,420px)]'
       />
       <div className='flex flex-wrap gap-4 text-[12px] text-ink-500'>
-        <span>时长约 {formatRecordingDuration(elapsed)}</span>
-        <span>大小约 {formatRecordingSize(recordedBlob?.size)}</span>
-        <span>格式 WebM（上传后由服务端处理）</span>
+        <span>{t('recorder.duration', { duration: formatRecordingDuration(elapsed) })}</span>
+        <span>{t('recorder.size', { size: formatRecordingSize(recordedBlob?.size) })}</span>
+        <span>{t('recorder.formatNote')}</span>
       </div>
       {error && (
         <div className='rounded-xl border border-clay-500/25 bg-clay-500/10 px-4 py-3 text-sm text-clay-600'>
@@ -362,19 +366,11 @@ function PreviewBody({ previewUrl, recordedBlob, elapsed, error, onRetake, onCon
         </div>
       )}
       <div className='flex flex-wrap justify-end gap-2 pt-1'>
-        <button type='button' onClick={onRetake} className='btn-ghost'>重新录制</button>
+        <button type='button' onClick={onRetake} className='btn-ghost'>{t('recorder.retake')}</button>
         <button type='button' onClick={onConfirm} className='btn-primary min-w-[140px] justify-center'>
-          使用此视频
+          {t('recorder.useVideo')}
         </button>
       </div>
-    </div>
-  )
-}
-
-function motionDiv({ className, children, ...props }) {
-  return (
-    <div className={className} {...props}>
-      {children}
     </div>
   )
 }

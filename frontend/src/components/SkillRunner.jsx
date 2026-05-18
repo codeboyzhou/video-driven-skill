@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import useAppStore from '../store/useAppStore.js'
 import { fetchAndroidDevices, fetchIosDevices, killAllMidsceneProcesses } from '../api/client.js'
 import {
@@ -11,6 +12,7 @@ const DEFAULT_TIMEOUT = 600
 const CONFIG_KEY_PREFIX = 'video-driven-skill:runner-config:'
 
 export default function SkillRunner() {
+  const { t } = useTranslation()
   const skillId = useAppStore(s => s.skillId)
   const skillFiles = useAppStore(s => s.skillFiles)
   const skillVariables = useAppStore(s => s.skillVariables)
@@ -121,13 +123,13 @@ export default function SkillRunner() {
     if (!skillId) return
     const config = { platform, targetUrl, headless, deviceId, timeoutSeconds, variableValues }
     localStorage.setItem(CONFIG_KEY_PREFIX + skillId, JSON.stringify(config))
-    setSavedHint('已保存')
+    setSavedHint(t('skillRunner.saved'))
     setTimeout(() => setSavedHint(''), 1500)
   }
 
   const resetDefaults = () => {
     if (!skillId) return
-    if (!confirm('确定要重置该 Skill 的默认配置吗？')) return
+    if (!confirm(t('skillRunner.resetConfirm'))) return
     localStorage.removeItem(CONFIG_KEY_PREFIX + skillId)
     setTargetUrl('')
     setHeadless(false)
@@ -140,7 +142,7 @@ export default function SkillRunner() {
     }
     // 允许下一次该 skill 的 init effect 重新走一次（重新做平台自动检测等）
     initializedSkillIdRef.current = null
-    setSavedHint('已重置')
+    setSavedHint(t('skillRunner.reset'))
     setTimeout(() => setSavedHint(''), 1500)
   }
 
@@ -171,12 +173,12 @@ export default function SkillRunner() {
   const handleRun = () => {
     if (!skillId) return
     if ((platform === 'android' || platform === 'ios') && !deviceId) {
-      setLogs(prev => [...prev, { type: 'error', message: '请选择设备' }])
+      setLogs(prev => [...prev, { type: 'error', message: t('skillRunner.selectDevice') }])
       return
     }
 
     setIsRunning(true); setLogs([]); setScreenshots([]); setResult(null); setActiveTab('logs')
-    setLogs(prev => [...prev, { type: 'info', message: '正在连接运行服务…' }])
+    setLogs(prev => [...prev, { type: 'info', message: t('skillRunner.connecting') }])
 
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     const wsUrl = `${wsProtocol}//${window.location.host}/ws/skill-run`
@@ -184,7 +186,7 @@ export default function SkillRunner() {
     wsRef.current = ws
 
     ws.onopen = () => {
-      setLogs(prev => [...prev, { type: 'info', message: '已连接，开始运行…' }])
+      setLogs(prev => [...prev, { type: 'info', message: t('skillRunner.connected') }])
       ws.send(JSON.stringify({
         action: 'run', skillId, platform,
         targetUrl: targetUrl || undefined,
@@ -209,7 +211,10 @@ export default function SkillRunner() {
           if (data.screenshots) setScreenshots(data.screenshots)
           setLogs(prev => [...prev, {
             type: data.success ? 'success' : 'error',
-            message: `${data.message} (耗时 ${(data.durationMs / 1000).toFixed(1)}s)`
+            message: t('skillRunner.duration', {
+              message: data.message,
+              seconds: (data.durationMs / 1000).toFixed(1),
+            })
           }])
           ws.close(); break
         case 'error':
@@ -224,7 +229,7 @@ export default function SkillRunner() {
     }
 
     ws.onerror = () => {
-      setLogs(prev => [...prev, { type: 'error', message: 'WebSocket 连接错误' }])
+      setLogs(prev => [...prev, { type: 'error', message: t('skillRunner.wsError') }])
       setIsRunning(false)
     }
   }
@@ -236,14 +241,14 @@ export default function SkillRunner() {
   }
 
   const handleKillAll = async () => {
-    if (!confirm('确定要终止所有 Midscene 进程吗？\n\n这将强制停止：\n· 所有运行中的 Skill 脚本\n· ADB 截图/命令进程\n· 清理临时文件')) return
-    setLogs(prev => [...prev, { type: 'warning', message: '正在终止所有 Midscene 进程…' }])
+    if (!confirm(t('skillRunner.killConfirm'))) return
+    setLogs(prev => [...prev, { type: 'warning', message: t('skillRunner.killing') }])
     try {
       const result = await killAllMidsceneProcesses()
-      const killedList = result.killed?.join(', ') || '无'
+      const killedList = result.killed?.join(', ') || t('common.none')
       setLogs(prev => [...prev,
-        { type: 'info', message: `已终止：${killedList}` },
-        { type: 'info', message: `清理临时目录：${result.cleanedDirs || 0} 个` }
+        { type: 'info', message: t('skillRunner.killed', { list: killedList }) },
+        { type: 'info', message: t('skillRunner.cleanedDirs', { count: result.cleanedDirs || 0 }) },
       ])
       if (result.errors && result.errors.length > 0) {
         result.errors.forEach(err => {
@@ -255,7 +260,7 @@ export default function SkillRunner() {
         if (wsRef.current) wsRef.current.close()
       }
     } catch (error) {
-      setLogs(prev => [...prev, { type: 'error', message: `终止进程失败：${error.message}` }])
+      setLogs(prev => [...prev, { type: 'error', message: t('skillRunner.killFailed', { message: error.message }) }])
     }
   }
 
@@ -288,14 +293,14 @@ export default function SkillRunner() {
       return (
         <div className='flex items-center gap-2 text-[12px] text-umber-600 bg-umber-50/70 border border-umber-300/40 rounded-xl px-3 py-2'>
           <AlertTriangle className='w-3.5 h-3.5' />
-          <span>未检测到 {platform === 'android' ? 'Android' : 'iOS'} 设备</span>
+          <span>{t('skillRunner.noDevice', { platform: platform === 'android' ? 'Android' : 'iOS' })}</span>
           <button
             onClick={loader}
             disabled={loadingDevices}
             className='ml-auto inline-flex items-center gap-1 text-ink-700 hover:text-ink-900 transition-colors'
           >
             <RefreshCw className={`w-3 h-3 ${loadingDevices ? 'animate-spin' : ''}`} />
-            {loadingDevices ? '刷新中' : '刷新'}
+            {loadingDevices ? t('common.refreshing') : t('common.refresh')}
           </button>
         </div>
       )
@@ -304,14 +309,14 @@ export default function SkillRunner() {
     return (
       <div className='space-y-1.5'>
         <label className='eyebrow flex items-center justify-between'>
-          <span>Device · 设备</span>
+          <span>{t('skillRunner.device')}</span>
           <button
             onClick={loader}
             disabled={loadingDevices}
             className='inline-flex items-center gap-1 text-ink-500 hover:text-ink-900 normal-case tracking-normal text-[11px] transition-colors'
           >
             <RefreshCw className={`w-3 h-3 ${loadingDevices ? 'animate-spin' : ''}`} />
-            {loadingDevices ? '刷新中' : '刷新'}
+            {loadingDevices ? t('common.refreshing') : t('common.refresh')}
           </button>
         </label>
         <select
@@ -354,8 +359,8 @@ export default function SkillRunner() {
           <div className='flex items-baseline gap-3'>
             <FlaskConical className='w-4 h-4 text-umber-500 self-center' />
             <div>
-              <div className='eyebrow mb-0.5'>Runner · 验证</div>
-              <span className='font-display text-[17px] text-ink-900'>运行 Skill</span>
+              <div className='eyebrow mb-0.5'>{t('skillRunner.runner')}</div>
+              <span className='font-display text-[17px] text-ink-900'>{t('skillRunner.runSkill')}</span>
             </div>
           </div>
 
@@ -365,7 +370,7 @@ export default function SkillRunner() {
                 ? 'bg-sage-300/20 border-sage-500/30 text-sage-700'
                 : 'bg-clay-500/10 border-clay-500/25 text-clay-700'}`}>
               {result.success ? <Check className='w-3 h-3' /> : <AlertCircle className='w-3 h-3' />}
-              {result.success ? '成功' : '失败'}
+              {result.success ? t('skillRunner.success') : t('skillRunner.failed')}
             </span>
           )}
         </div>
@@ -391,7 +396,7 @@ export default function SkillRunner() {
         {/* Variable configuration */}
         {skillVariables && skillVariables.length > 0 && (
           <div className='space-y-2.5 border-t hairline pt-4'>
-            <label className='eyebrow'>Variables · 变量</label>
+            <label className='eyebrow'>{t('skillRunner.variables')}</label>
             <div className='space-y-2.5'>
               {skillVariables.map(variable => (
                 <div key={variable.name} className='space-y-1'>
@@ -400,7 +405,7 @@ export default function SkillRunner() {
                     type={variable.type === 'number' ? 'number' : 'text'}
                     value={variableValues[variable.name] || ''}
                     onChange={e => setVariableValues(prev => ({ ...prev, [variable.name]: e.target.value }))}
-                    placeholder={`默认值 · ${variable.defaultValue || ''}`}
+                    placeholder={t('skillRunner.defaultValue', { value: variable.defaultValue || '' })}
                     disabled={isRunning}
                     className='w-full bg-paper-50 border border-ink-900/10 rounded-xl px-3 py-2 text-[13px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:border-umber-500 transition-colors disabled:opacity-50'
                   />
@@ -414,7 +419,7 @@ export default function SkillRunner() {
         {platform === 'browser' && (
           <div className='space-y-3 border-t hairline pt-4'>
             <div className='space-y-1.5'>
-              <label className='eyebrow'>URL · 目标网址（可选）</label>
+              <label className='eyebrow'>{t('skillRunner.targetUrl')}</label>
               <input
                 type='text'
                 value={targetUrl}
@@ -433,7 +438,7 @@ export default function SkillRunner() {
                 disabled={isRunning}
                 className='rounded border-ink-900/20 bg-paper-50 text-umber-600 focus:ring-umber-500 focus:ring-offset-0'
               />
-              <span className='text-[13px] text-ink-700'>无头模式 · 不显示浏览器窗口</span>
+              <span className='text-[13px] text-ink-700'>{t('skillRunner.headless')}</span>
             </label>
           </div>
         )}
@@ -445,7 +450,7 @@ export default function SkillRunner() {
         {platform === 'computer' && (
           <div className='flex items-start gap-2 text-[12px] text-umber-700 bg-umber-50/70 border border-umber-300/40 rounded-xl px-3 py-2.5 leading-relaxed'>
             <AlertTriangle className='w-3.5 h-3.5 shrink-0 mt-0.5' />
-            <span>Computer 平台将控制当前桌面，请确保无敏感操作</span>
+            <span>{t('skillRunner.computerWarning')}</span>
           </div>
         )}
 
@@ -453,7 +458,7 @@ export default function SkillRunner() {
         <div className='border-t hairline pt-4 flex flex-wrap items-end gap-3'>
           <div className='space-y-1.5 min-w-[180px]'>
             <label className='eyebrow flex items-center gap-1.5'>
-              <Timer className='w-3 h-3' /> Timeout · 超时（秒）
+              <Timer className='w-3 h-3' /> {t('skillRunner.timeout')}
             </label>
             <input
               type='number'
@@ -465,7 +470,7 @@ export default function SkillRunner() {
               disabled={isRunning}
               className='w-full bg-paper-50 border border-ink-900/10 rounded-xl px-3 py-2 text-[13px] text-ink-900 focus:outline-none focus:border-umber-500 transition-colors disabled:opacity-50'
             />
-            <span className='text-[11px] text-ink-400'>默认 {DEFAULT_TIMEOUT}s · 范围 30~3600</span>
+            <span className='text-[11px] text-ink-400'>{t('skillRunner.timeoutRange', { default: DEFAULT_TIMEOUT })}</span>
           </div>
           <div className='flex items-center gap-2 ml-auto'>
             {savedHint && <span className='text-[11.5px] text-sage-700 font-mono tracking-wider'>{savedHint}</span>}
@@ -473,16 +478,16 @@ export default function SkillRunner() {
               onClick={saveDefaults}
               disabled={!skillId || isRunning}
               className='btn-ghost disabled:opacity-40 disabled:cursor-not-allowed'
-              title='保存当前配置为该 Skill 默认值'
+              title={t('skillRunner.saveDefaultsTitle')}
             >
               <Save className='w-3.5 h-3.5' />
-              <span>保存默认</span>
+              <span>{t('skillRunner.saveDefaults')}</span>
             </button>
             <button
               onClick={resetDefaults}
               disabled={!skillId || isRunning}
               className='btn-ghost disabled:opacity-40 disabled:cursor-not-allowed'
-              title='重置该 Skill 的默认配置'
+              title={t('skillRunner.resetDefaultsTitle')}
             >
               <RotateCcw className='w-3.5 h-3.5' />
             </button>
@@ -497,7 +502,7 @@ export default function SkillRunner() {
               className='flex-1 btn-primary justify-center bg-clay-500 border-clay-500 hover:bg-clay-700'
             >
               <Square className='w-3.5 h-3.5 fill-current' />
-              <span>停止运行</span>
+              <span>{t('skillRunner.stopRun')}</span>
             </button>
           ) : (
             <button
@@ -506,7 +511,7 @@ export default function SkillRunner() {
               className='flex-1 btn-primary justify-center disabled:opacity-40 disabled:cursor-not-allowed'
             >
               <Play className='w-3.5 h-3.5 fill-current' />
-              <span>运行验证</span>
+              <span>{t('skillRunner.runValidation')}</span>
             </button>
           )}
 
@@ -514,14 +519,14 @@ export default function SkillRunner() {
             onClick={clearLogs}
             disabled={isRunning || logs.length === 0}
             className='btn-ghost disabled:opacity-40 disabled:cursor-not-allowed'
-            title='清空日志'
+            title={t('skillRunner.clearLogs')}
           >
             <Trash2 className='w-3.5 h-3.5' />
           </button>
 
           <button
             onClick={handleKillAll}
-            title='强制终止所有 Midscene 进程（含 ADB）'
+            title={t('skillRunner.killMidscene')}
             className='btn-ghost text-clay-700 hover:border-clay-500/40 hover:text-clay-500'
           >
             <Skull className='w-3.5 h-3.5' />
@@ -531,7 +536,7 @@ export default function SkillRunner() {
 
         {!canRun() && !isRunning && (platform === 'android' || platform === 'ios') && (
           <p className='text-[11.5px] text-umber-600 flex items-center gap-1.5'>
-            <AlertTriangle className='w-3 h-3' /> 请先连接设备
+            <AlertTriangle className='w-3 h-3' /> {t('skillRunner.connectDeviceFirst')}
           </p>
         )}
       </div>
@@ -539,7 +544,7 @@ export default function SkillRunner() {
       {/* Screenshots */}
       {screenshots.length > 0 && (
         <div className='card-paper p-4'>
-          <div className='eyebrow mb-3'>Captures · 执行截图 ({screenshots.length})</div>
+          <div className='eyebrow mb-3'>{t('skillRunner.screenshots', { count: screenshots.length })}</div>
           <div className='grid grid-cols-2 gap-2 max-h-56 overflow-y-auto scrollbar-thin'>
             {screenshots.map((shot, idx) => (
               <div key={idx} className='relative group rounded-lg overflow-hidden border hairline'>
@@ -570,7 +575,7 @@ export default function SkillRunner() {
                     : 'bg-paper-50 text-ink-500 border-ink-900/10 hover:text-ink-900'}`}
               >
                 <FileText className='w-3 h-3 inline mr-1 -mt-0.5' />
-                日志 · {logs.length}
+                {t('skillRunner.logs', { count: logs.length })}
               </button>
               {result && (
                 <button
@@ -581,7 +586,7 @@ export default function SkillRunner() {
                       : 'bg-paper-50 text-ink-500 border-ink-900/10 hover:text-ink-900'}`}
                 >
                   <BarChart3 className='w-3 h-3 inline mr-1 -mt-0.5' />
-                  结果
+                  {t('skillRunner.result')}
                 </button>
               )}
             </div>
@@ -590,17 +595,17 @@ export default function SkillRunner() {
                 <button
                   onClick={copyLogs}
                   className='text-[11px] text-ink-500 hover:text-ink-900 transition-colors flex items-center gap-1'
-                  title='复制全部日志'
+                  title={t('skillRunner.copyLogs')}
                 >
-                  <Clipboard className='w-3 h-3' /> 复制
+                  <Clipboard className='w-3 h-3' /> {t('common.copy')}
                 </button>
               ) : (
                 <button
                   onClick={copyResult}
                   className='text-[11px] text-ink-500 hover:text-ink-900 transition-colors flex items-center gap-1'
-                  title='复制结果 JSON'
+                  title={t('skillRunner.copyResult')}
                 >
-                  <Clipboard className='w-3 h-3' /> 复制
+                  <Clipboard className='w-3 h-3' /> {t('common.copy')}
                 </button>
               )}
               {isRunning && (
@@ -634,7 +639,7 @@ export default function SkillRunner() {
                     ? 'bg-sage-300/20 border-sage-500/30 text-sage-700'
                     : 'bg-clay-500/10 border-clay-500/25 text-clay-700'}`}>
                   {result.success ? <Check className='w-3 h-3' /> : <AlertCircle className='w-3 h-3' />}
-                  {result.success ? '执行成功' : '执行失败'}
+                  {result.success ? t('skillRunner.runSuccess') : t('skillRunner.runFailed')}
                 </span>
                 {result.durationMs && (
                   <span className='font-mono text-[11px] text-ink-400 tracking-wide'>
@@ -654,13 +659,13 @@ export default function SkillRunner() {
                     <div className='mb-3 px-3 py-2.5 bg-paper-100/60 border hairline rounded-xl flex flex-wrap items-center gap-x-5 gap-y-1 text-[12px]'>
                       <span className='eyebrow'>Summary</span>
                       {total != null && (
-                        <span className='text-ink-700'>商品 · <span className='font-mono text-sage-700 font-medium'>{total}</span></span>
+                        <span className='text-ink-700'>{t('skillRunner.product')} · <span className='font-mono text-sage-700 font-medium'>{total}</span></span>
                       )}
                       {target != null && (
-                        <span className='text-ink-700'>目标 · <span className='font-mono text-ink-900'>{target}</span></span>
+                        <span className='text-ink-700'>{t('skillRunner.target')} · <span className='font-mono text-ink-900'>{target}</span></span>
                       )}
                       {shop && (
-                        <span className='text-ink-700'>店铺 · <span className='text-umber-600'>{shop}</span></span>
+                        <span className='text-ink-700'>{t('skillRunner.shop')} · <span className='text-umber-600'>{shop}</span></span>
                       )}
                     </div>
                   )

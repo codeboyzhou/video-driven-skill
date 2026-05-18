@@ -1,7 +1,9 @@
 import { useState, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import useAppStore from '../store/useAppStore.js'
 
 export default function FrameTimeline() {
+  const { t } = useTranslation()
   const frames = useAppStore(s => s.frames)
   const selectedFrameId = useAppStore(s => s.selectedFrameId)
   const setSelectedFrameId = useAppStore(s => s.setSelectedFrameId)
@@ -16,7 +18,7 @@ export default function FrameTimeline() {
   if (frames.length === 0) {
     return (
       <div className='rounded-2xl border border-dashed border-ink-900/12 bg-paper-100/60 py-6 text-center text-sm text-ink-400'>
-        暂无帧，请点击「自动抽帧」或「截取当前帧」
+        {t('frameTimeline.empty')}
       </div>
     )
   }
@@ -104,7 +106,7 @@ export default function FrameTimeline() {
             <button
               className='absolute left-1.5 top-1/2 z-10 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full bg-paper-50/90 text-xs text-ink-700 opacity-0 shadow-soft ring-1 ring-ink-900/10 transition-opacity hover:bg-umber-50 group-hover:opacity-100'
               onClick={(e) => handleMove(e, frame.frameId, 'left')}
-              title='左移'
+              title={t('frameTimeline.moveLeft')}
             >
               ←
             </button>
@@ -115,7 +117,7 @@ export default function FrameTimeline() {
             <button
               className='absolute right-1.5 top-1/2 z-10 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full bg-paper-50/90 text-xs text-ink-700 opacity-0 shadow-soft ring-1 ring-ink-900/10 transition-opacity hover:bg-umber-50 group-hover:opacity-100'
               onClick={(e) => handleMove(e, frame.frameId, 'right')}
-              title='右移'
+              title={t('frameTimeline.moveRight')}
             >
               →
             </button>
@@ -134,7 +136,7 @@ export default function FrameTimeline() {
             onDragStart={(e) => handleDragStart(e, index)}
             onDragEnd={handleDragEnd}
             className='absolute left-2 top-2 z-20 cursor-move rounded-full bg-ink-900/80 px-2 py-0.5 font-mono text-[10px] text-paper-50 shadow-soft hover:bg-umber-600'
-            title={`第 ${index + 1} 帧 - 拖拽可调整顺序`}
+            title={t('frameTimeline.frameN', { n: index + 1 })}
           >
             {index + 1}
           </div>
@@ -149,7 +151,7 @@ export default function FrameTimeline() {
               ${deletingId === frame.frameId ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
             onClick={(e) => handleDelete(e, frame.frameId, index)}
             disabled={deletingId === frame.frameId}
-            title='删除'
+            title={t('common.delete')}
           >
             {deletingId === frame.frameId ? (
               <span className='w-3 h-3 border-2 border-paper-50/30 border-t-paper-50 rounded-full animate-spin' />
@@ -160,7 +162,7 @@ export default function FrameTimeline() {
 
           {/* 有描述标记 */}
           {frame.description && (
-            <div className='absolute bottom-6 left-2 h-2 w-2 rounded-full bg-sage-500 ring-2 ring-paper-50' title='已添加描述' />
+            <div className='absolute bottom-6 left-2 h-2 w-2 rounded-full bg-sage-500 ring-2 ring-paper-50' title={t('frameTimeline.hasDescription')} />
           )}
         </div>
       ))}

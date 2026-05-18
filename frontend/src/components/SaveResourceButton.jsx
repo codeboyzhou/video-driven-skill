@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import useAppStore from '../store/useAppStore.js'
 import { saveVideoArchive, saveFrameArchive } from '../api/client.js'
 import { Save, Film, Images, Loader2, Check, AlertCircle } from 'lucide-react'
 
 export default function SaveResourceButton() {
+  const { t } = useTranslation()
   const videoId = useAppStore(s => s.videoId)
   const videoFilename = useAppStore(s => s.videoFilename)
   const frames = useAppStore(s => s.frames)
@@ -19,9 +21,9 @@ export default function SaveResourceButton() {
     try {
       const archive = await saveVideoArchive(videoId, videoFilename)
       setSavedVideoId(archive.id)
-      setMessage({ type: 'success', text: '视频已保存，可继续保存帧' })
+      setMessage({ type: 'success', text: t('saveResource.videoSaved') })
     } catch (e) {
-      setMessage({ type: 'error', text: '保存失败：' + e.message })
+      setMessage({ type: 'error', text: t('common.saveFailed', { message: e.message }) })
     } finally {
       setSaving(false); setShowMenu(false)
       setTimeout(() => setMessage(null), 3000)
@@ -45,10 +47,16 @@ export default function SaveResourceButton() {
         })
         saved++
       }
-      setMessage({ type: 'success', text: `${saved} 个帧已保存${savedVideoId ? '并关联到视频' : ''}` })
+      setMessage({
+        type: 'success',
+        text: t('saveResource.framesSaved', {
+          count: saved,
+          linked: savedVideoId ? t('saveResource.linkedToVideo') : '',
+        }),
+      })
       setSavedVideoId(null)
     } catch (e) {
-      setMessage({ type: 'error', text: '保存失败：' + e.message })
+      setMessage({ type: 'error', text: t('common.saveFailed', { message: e.message }) })
     } finally {
       setSaving(false); setShowMenu(false)
       setTimeout(() => setMessage(null), 3000)
@@ -65,7 +73,7 @@ export default function SaveResourceButton() {
         className='btn-ghost disabled:opacity-60'
       >
         {saving ? <Loader2 className='w-3.5 h-3.5 animate-spin' /> : <Save className='w-3.5 h-3.5' />}
-        <span>{saving ? '保存中' : '保存'}</span>
+        <span>{saving ? t('saveResource.saving') : t('saveResource.save')}</span>
       </button>
 
       {showMenu && (
@@ -78,7 +86,7 @@ export default function SaveResourceButton() {
                 className='w-full px-4 py-2.5 text-left text-[13px] text-ink-700 hover:bg-paper-200/50 hover:text-ink-900 transition-colors flex items-center gap-2.5'
               >
                 <Film className='w-3.5 h-3.5 text-ink-400' />
-                <span className='flex-1'>保存视频</span>
+                <span className='flex-1'>{t('saveResource.saveVideo')}</span>
                 {savedVideoId && <Check className='w-3.5 h-3.5 text-sage-700' />}
               </button>
             )}
@@ -88,13 +96,13 @@ export default function SaveResourceButton() {
                 className='w-full px-4 py-2.5 text-left text-[13px] text-ink-700 hover:bg-paper-200/50 hover:text-ink-900 transition-colors flex items-center gap-2.5'
               >
                 <Images className='w-3.5 h-3.5 text-ink-400' />
-                <span className='flex-1'>保存所有帧</span>
+                <span className='flex-1'>{t('saveResource.saveAllFrames')}</span>
                 <span className='font-mono text-[10.5px] text-ink-400'>{frames.length}</span>
               </button>
             )}
             {savedVideoId && (
               <div className='px-4 py-2 text-[11px] text-umber-600 border-t hairline bg-umber-50/40 leading-relaxed'>
-                提示 · 先保存视频，再保存帧可建立关联
+                {t('saveResource.tip')}
               </div>
             )}
           </div>

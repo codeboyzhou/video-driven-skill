@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { fetchPromptTemplates, createPromptTemplate, deletePromptTemplate, incrementTemplateUseCount } from '../api/client.js'
 
 export default function PromptTemplateSelector({ value, onChange, onSelect }) {
+  const { t } = useTranslation()
   const [templates, setTemplates] = useState([])
   const [loading, setLoading] = useState(false)
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [newTemplateName, setNewTemplateName] = useState('')
   const [newTemplateCategory, setNewTemplateCategory] = useState('custom')
 
-  // 加载模板列表
   useEffect(() => {
     loadTemplates()
   }, [])
@@ -25,25 +26,21 @@ export default function PromptTemplateSelector({ value, onChange, onSelect }) {
     }
   }
 
-  // 选择模板
   const handleSelectTemplate = async (template) => {
-    // 追加到现有内容
     const newValue = value 
       ? value + '\n\n' + template.content 
       : template.content
     onChange(newValue)
     
-    // 增加使用次数
     try {
       await incrementTemplateUseCount(template.id)
     } catch (e) {
-      // 忽略错误
+      // ignore
     }
     
     if (onSelect) onSelect(template)
   }
 
-  // 保存为新模板
   const handleSaveTemplate = async () => {
     if (!newTemplateName.trim() || !value.trim()) return
     
@@ -55,53 +52,57 @@ export default function PromptTemplateSelector({ value, onChange, onSelect }) {
       })
       setShowSaveDialog(false)
       setNewTemplateName('')
-      loadTemplates() // 刷新列表
+      loadTemplates()
     } catch (e) {
-      alert('保存失败: ' + e.message)
+      alert(t('common.saveFailed', { message: e.message }))
     }
   }
 
-  // 删除模板
   const handleDeleteTemplate = async (id, e) => {
     e.stopPropagation()
-    if (!confirm('确定要删除这个模板吗？')) return
+    if (!confirm(t('promptTemplate.deleteConfirm'))) return
     
     try {
       await deletePromptTemplate(id)
       loadTemplates()
     } catch (err) {
-      alert('删除失败: ' + err.message)
+      alert(t('common.deleteFailed', { message: err.message }))
     }
   }
 
-  // 分类图标和颜色
   const getCategoryStyle = (category) => {
     switch (category) {
-      case 'error-handling': return { icon: '🛡️', label: '错误处理', color: 'bg-red-900/50 text-red-400' }
-      case 'logging': return { icon: '📝', label: '日志', color: 'bg-blue-900/50 text-blue-400' }
-      case 'data-extraction': return { icon: '📊', label: '数据提取', color: 'bg-green-900/50 text-green-400' }
-      default: return { icon: '✨', label: '自定义', color: 'bg-purple-900/50 text-purple-400' }
+      case 'error-handling': return { icon: '🛡️', label: t('promptTemplate.category.errorHandling'), color: 'bg-red-900/50 text-red-400' }
+      case 'logging': return { icon: '📝', label: t('promptTemplate.category.logging'), color: 'bg-blue-900/50 text-blue-400' }
+      case 'data-extraction': return { icon: '📊', label: t('promptTemplate.category.dataExtraction'), color: 'bg-green-900/50 text-green-400' }
+      default: return { icon: '✨', label: t('promptTemplate.category.custom'), color: 'bg-purple-900/50 text-purple-400' }
     }
   }
+
+  const categoryOptions = [
+    { value: 'custom', label: `✨ ${t('promptTemplate.category.custom')}` },
+    { value: 'error-handling', label: `🛡️ ${t('promptTemplate.category.errorHandling')}` },
+    { value: 'logging', label: `📝 ${t('promptTemplate.category.logging')}` },
+    { value: 'data-extraction', label: `📊 ${t('promptTemplate.category.dataExtraction')}` },
+  ]
 
   return (
     <div className="space-y-3">
-      {/* 快捷模板按钮 */}
       <div className="flex items-center justify-between">
-        <span className="text-xs text-slate-500">常用模板</span>
+        <span className="text-xs text-slate-500">{t('promptTemplate.commonTemplates')}</span>
         <button
           onClick={() => setShowSaveDialog(true)}
           disabled={!value.trim()}
           className="text-xs text-blue-400 hover:text-blue-300 disabled:opacity-50"
         >
-          💾 保存为模板
+          💾 {t('promptTemplate.saveAsTemplate')}
         </button>
       </div>
 
       {loading ? (
-        <div className="text-xs text-slate-500">加载中...</div>
+        <div className="text-xs text-slate-500">{t('common.loading')}</div>
       ) : templates.length === 0 ? (
-        <div className="text-xs text-slate-600">暂无保存的模板</div>
+        <div className="text-xs text-slate-600">{t('promptTemplate.noTemplates')}</div>
       ) : (
         <div className="flex flex-wrap gap-2">
           {templates.slice(0, 6).map(template => {
@@ -117,7 +118,6 @@ export default function PromptTemplateSelector({ value, onChange, onSelect }) {
                 {template.name}
                 <span className="ml-1 opacity-50">({template.useCount || 0})</span>
                 
-                {/* 删除按钮 */}
                 <span
                   onClick={(e) => handleDeleteTemplate(template.id, e)}
                   className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 text-white rounded-full text-[10px] 
@@ -131,15 +131,14 @@ export default function PromptTemplateSelector({ value, onChange, onSelect }) {
         </div>
       )}
 
-      {/* 保存模板对话框 */}
       {showSaveDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-slate-800 rounded-xl p-4 w-80">
-            <h3 className="text-white text-sm font-medium mb-3">保存为模板</h3>
+            <h3 className="text-white text-sm font-medium mb-3">{t('promptTemplate.saveDialogTitle')}</h3>
             
             <input
               type="text"
-              placeholder="模板名称"
+              placeholder={t('promptTemplate.templateName')}
               value={newTemplateName}
               onChange={(e) => setNewTemplateName(e.target.value)}
               className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white mb-3"
@@ -150,10 +149,9 @@ export default function PromptTemplateSelector({ value, onChange, onSelect }) {
               onChange={(e) => setNewTemplateCategory(e.target.value)}
               className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white mb-4"
             >
-              <option value="custom">✨ 自定义</option>
-              <option value="error-handling">🛡️ 错误处理</option>
-              <option value="logging">📝 日志</option>
-              <option value="data-extraction">📊 数据提取</option>
+              {categoryOptions.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
             </select>
             
             <div className="flex gap-2">
@@ -161,14 +159,14 @@ export default function PromptTemplateSelector({ value, onChange, onSelect }) {
                 onClick={() => setShowSaveDialog(false)}
                 className="flex-1 px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm rounded-lg"
               >
-                取消
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleSaveTemplate}
                 disabled={!newTemplateName.trim()}
                 className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm rounded-lg"
               >
-                保存
+                {t('common.save')}
               </button>
             </div>
           </div>

@@ -1,15 +1,17 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Canvas, FabricImage, Group, IText, Line, Rect, Triangle } from 'fabric'
 import useAppStore from '../store/useAppStore.js'
 
-const TOOLS = [
-  { id: 'select', label: '选择' },
-  { id: 'arrow', label: '箭头' },
-  { id: 'rect', label: '矩形' },
-  { id: 'text', label: '文字' },
-]
-
 export default function FrameAnnotator() {
+  const { t } = useTranslation()
+  const tools = useMemo(() => [
+    { id: 'select', label: t('frameAnnotator.select') },
+    { id: 'arrow', label: t('frameAnnotator.arrow') },
+    { id: 'rect', label: t('frameAnnotator.rect') },
+    { id: 'text', label: t('frameAnnotator.text') },
+  ], [t])
+
   const canvasRef = useRef()
   const fabricRef = useRef(null)
   const [tool, setTool] = useState('select')
@@ -34,9 +36,9 @@ export default function FrameAnnotator() {
   const selectedFrame = frames.find(f => f.frameId === selectedFrameId)
 
   // Keep refs in sync
-  const changeTool = (t) => {
-    toolRef.current = t
-    setTool(t)
+  const changeTool = (tId) => {
+    toolRef.current = tId
+    setTool(tId)
   }
 
   useEffect(() => {
@@ -85,9 +87,6 @@ export default function FrameAnnotator() {
 
     canvas.on('object:modified', saveAnnotation)
 
-    // Enforce current tool mode on every newly added object.
-    // This covers: loadFromJSON restores, arrow group assembly, rect creation —
-    // any path that adds an object without going through the tool-change useEffect.
     canvas.on('object:added', ({ target }) => {
       if (!target) return
       const isSelect = toolRef.current === 'select'
@@ -95,7 +94,6 @@ export default function FrameAnnotator() {
       target.evented = isSelect
     })
 
-    // Mouse event handlers using refs (no stale closure issue)
     canvas.on('mouse:down', (opt) => {
       if (toolRef.current === 'select') return
       const pointer = canvas.getPointer(opt.e)
@@ -103,7 +101,7 @@ export default function FrameAnnotator() {
       isDrawingRef.current = true
 
       if (toolRef.current === 'text') {
-        const text = new IText('文字', {
+        const text = new IText(t('frameAnnotator.defaultText'), {
           left: pointer.x,
           top: pointer.y,
           fill: '#9A6B3F',
@@ -120,7 +118,6 @@ export default function FrameAnnotator() {
       }
 
       if (toolRef.current === 'arrow') {
-        // 用 line + triangle 组合实现带箭头的线，拖拽时先放预览线
         const line = new Line([pointer.x, pointer.y, pointer.x, pointer.y], {
           stroke: '#B87E6B',
           strokeWidth: 2.5,
@@ -164,7 +161,6 @@ export default function FrameAnnotator() {
       if (obj.type === 'arrow') {
         const { line, head } = obj
         line.set({ x2: pointer.x, y2: pointer.y })
-        // 计算箭头角度
         const angle = Math.atan2(pointer.y - line.y1, pointer.x - line.x1) * 180 / Math.PI
         head.set({ left: pointer.x, top: pointer.y, angle: angle + 90 })
       } else if (obj instanceof Rect) {
@@ -185,9 +181,8 @@ export default function FrameAnnotator() {
       const obj = activeObjRef.current
       activeObjRef.current = null
 
-      // 将预览的 line + head 合并为一个可选中的 Group
       if (obj && obj.type === 'arrow') {
-        suppressSaveRef.current = true   // 屏蔽中间状态触发的 save
+        suppressSaveRef.current = true
         const { line, head } = obj
         canvas.remove(line)
         canvas.remove(head)
@@ -199,7 +194,7 @@ export default function FrameAnnotator() {
     })
 
     return () => canvas.dispose()
-  }, [])
+  }, [t])
 
   // Load frame image when selection changes
   useEffect(() => {
@@ -215,7 +210,6 @@ export default function FrameAnnotator() {
     canvas.clear()
     suppressSaveRef.current = false
 
-    // Clear background first
     canvas.backgroundImage = undefined
     canvas.requestRenderAll()
 
@@ -260,15 +254,11 @@ export default function FrameAnnotator() {
       })
   }, [selectedFrame, selectedFrameId])
 
-  // Sync selection mode when tool changes
   useEffect(() => {
     const canvas = fabricRef.current
     if (!canvas) return
     const isSelect = tool === 'select'
     canvas.selection = isSelect
-    // skipTargetFind=true: Fabric skips object hit-testing entirely in draw mode,
-    // guaranteeing all mouse events reach canvas-level handlers regardless of
-    // individual object evented/selectable state.
     canvas.skipTargetFind = !isSelect
     canvas.discardActiveObject()
     canvas.forEachObject(obj => {
@@ -294,18 +284,17 @@ export default function FrameAnnotator() {
 
   return (
     <div className='flex h-full min-h-0 flex-col gap-3'>
-      {/* Toolbar */}
       <div className='flex flex-wrap items-center gap-2 rounded-2xl border border-ink-900/8 bg-paper-100/70 p-2'>
-        {TOOLS.map(t => (
+        {tools.map(toolItem => (
           <button
-            key={t.id}
-            onClick={() => changeTool(t.id)}
+            key={toolItem.id}
+            onClick={() => changeTool(toolItem.id)}
             disabled={!selectedFrame}
             className={`rounded-full px-3 py-1.5 text-[13px] font-medium transition-all
-              ${tool === t.id ? 'bg-ink-900 text-paper-50 shadow-soft' : 'text-ink-500 hover:bg-paper-200 hover:text-ink-900'}
+              ${tool === toolItem.id ? 'bg-ink-900 text-paper-50 shadow-soft' : 'text-ink-500 hover:bg-paper-200 hover:text-ink-900'}
               ${!selectedFrame ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            {t.label}
+            {toolItem.label}
           </button>
         ))}
         <button
@@ -314,18 +303,17 @@ export default function FrameAnnotator() {
           className={`ml-auto rounded-full px-3 py-1.5 text-[13px] font-medium text-ink-500 transition-all hover:bg-clay-500/10 hover:text-clay-700
             ${!selectedFrame ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
-          清除标注
+          {t('frameAnnotator.clear')}
         </button>
       </div>
 
-      {/* Canvas - always rendered with placeholder overlay when no frame */}
       <div className='relative flex-1 overflow-hidden rounded-2xl border border-ink-900/10 bg-paper-100 shadow-inset-hair'>
         <div className='flex h-full min-h-[360px] items-center justify-center p-3'>
           <canvas ref={canvasRef} className='max-w-full rounded-xl shadow-soft' />
         </div>
         {!selectedFrame && (
           <div className='absolute inset-0 flex items-center justify-center bg-paper-100/85 text-sm text-ink-400 backdrop-blur-sm'>
-            请从时间轴选择一帧进行标注
+            {t('frameAnnotator.pickFrame')}
           </div>
         )}
       </div>

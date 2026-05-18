@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import useAppStore from '../store/useAppStore.js'
 import { regenerateSkill, acceptCandidate, discardCandidate, fetchSkillVersions } from '../api/client.js'
 import PromptTemplateSelector from './PromptTemplateSelector.jsx'
 
 export default function CodeComparisonView({ onClose }) {
+  const { t } = useTranslation()
   const store = useAppStore()
   const {
     skillId,
@@ -106,7 +108,7 @@ export default function CodeComparisonView({ onClose }) {
       setHistoryVersions(response.history)
     } catch (e) {
       console.error('Regeneration failed:', e)
-      setRegenError(e.message || '重新生成失败')
+      setRegenError(e.message || t('regenerate.regenerateFailed'))
     }
   }
 
@@ -121,7 +123,7 @@ export default function CodeComparisonView({ onClose }) {
       if (onClose) onClose()
       else closeRegenerationPanel()
     } catch (e) {
-      alert('接受失败: ' + e.message)
+      alert(t('regenerate.acceptFailed', { message: e.message }))
     } finally {
       setIsAccepting(false)
     }
@@ -137,7 +139,7 @@ export default function CodeComparisonView({ onClose }) {
       discardCandidateAction()
       if (onClose) onClose()
     } catch (e) {
-      alert('放弃失败: ' + e.message)
+      alert(t('regenerate.discardFailed', { message: e.message }))
     } finally {
       setIsDiscarding(false)
     }
@@ -148,7 +150,7 @@ export default function CodeComparisonView({ onClose }) {
     return (
       <div className="bg-slate-800/50 rounded-xl p-4 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-slate-400 text-xs uppercase tracking-wider">🔄 重新生成</h3>
+          <h3 className="text-slate-400 text-xs uppercase tracking-wider">🔄 {t('regenerate.regenerate')}</h3>
           <button
             onClick={closeRegenerationPanel}
             className="text-slate-500 hover:text-slate-300"
@@ -159,24 +161,22 @@ export default function CodeComparisonView({ onClose }) {
 
         {/* 原始诉求 */}
         <div className="space-y-1">
-          <label className="text-xs text-slate-500">原始诉求</label>
+          <label className="text-xs text-slate-500">{t('regenerate.originalRequirement')}</label>
           <div className="bg-slate-900/50 rounded-lg p-2 text-sm text-slate-400 line-clamp-2">
-            {requirement || '（未设置诉求）'}
+            {requirement || t('regenerate.noRequirement')}
           </div>
         </div>
 
         {/* 补充要求输入 */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label className="text-xs text-slate-500">补充要求</label>
+            <label className="text-xs text-slate-500">{t('regenerate.additionalRequirement')}</label>
           </div>
           
           <textarea
             value={additionalPrompt}
             onChange={(e) => setAdditionalPrompt(e.target.value)}
-            placeholder="添加详细的错误处理...
-使用 aiQuery 提取标题、播放量...
-每步操作后添加 console.log..."
+            placeholder={t('regenerate.placeholder')}
             className="w-full h-24 bg-slate-900/50 border border-slate-700 rounded-lg p-3 
                      text-sm text-slate-300 placeholder-slate-600 resize-none
                      focus:outline-none focus:border-blue-500"
@@ -192,7 +192,7 @@ export default function CodeComparisonView({ onClose }) {
         <div className="space-y-2 py-2 border-t border-slate-700/50">
           <div className="flex items-center justify-between">
             <span className="text-xs text-slate-500">
-              🖼️ 使用 {frames.length} 个关键帧（固定）
+              🖼️ {t('regenerate.usingFrames', { count: frames.length })}
             </span>
           </div>
           
@@ -203,12 +203,12 @@ export default function CodeComparisonView({ onClose }) {
                 <div
                   key={frame.frameId || index}
                   className="relative aspect-video bg-slate-900 rounded overflow-hidden group"
-                  title={frame.description || `帧 ${index + 1} @ ${formatTime(frame.timestamp)}`}
+                  title={frame.description || `${t('regenerate.frameAlt', { n: index + 1 })} @ ${formatTime(frame.timestamp)}`}
                 >
                   {frame.base64Image ? (
                     <img
                       src={frame.base64Image.startsWith('data:') ? frame.base64Image : `data:image/jpeg;base64,${frame.base64Image}`}
-                      alt={`帧 ${index + 1}`}
+                      alt={t('regenerate.frameAlt', { n: index + 1 })}
                       className="w-full h-full object-cover"
                     />
                   ) : (
@@ -237,7 +237,7 @@ export default function CodeComparisonView({ onClose }) {
             onClick={closeRegenerationPanel}
             className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm rounded-lg"
           >
-            取消
+            {t('common.cancel')}
           </button>
           <button
             onClick={handleRegenerate}
@@ -248,12 +248,12 @@ export default function CodeComparisonView({ onClose }) {
             {isRegenerating ? (
               <>
                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                生成中...
+                {t('regenerate.generating')}
               </>
             ) : (
               <>
                 <span>🔄</span>
-                重新生成
+                {t('regenerate.regenerate')}
               </>
             )}
           </button>
@@ -269,7 +269,7 @@ export default function CodeComparisonView({ onClose }) {
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/50">
         <div className="flex items-center gap-3">
           <h3 className="text-slate-400 text-xs uppercase tracking-wider">
-            代码对比（第 {iteration} 次迭代）
+            {t('regenerate.compareTitle', { n: iteration })}
           </h3>
           
           {/* 文件选择器 */}
@@ -290,7 +290,7 @@ export default function CodeComparisonView({ onClose }) {
             onClick={() => setShowHistory(!showHistory)}
             className="px-2 py-1 text-xs text-slate-400 hover:text-slate-300 bg-slate-700/50 rounded"
           >
-            📚 历史版本
+            📚 {t('regenerate.historyVersions')}
           </button>
           
           <button
@@ -306,19 +306,19 @@ export default function CodeComparisonView({ onClose }) {
       {frames.length > 0 && (
         <div className="px-4 py-2 bg-slate-900/30 border-b border-slate-700/50">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-xs text-slate-500">🖼️ 关联帧 ({frames.length})</span>
+            <span className="text-xs text-slate-500">🖼️ {t('regenerate.relatedFrames', { count: frames.length })}</span>
           </div>
           <div className="flex gap-1.5 overflow-x-auto scrollbar-thin pb-1">
             {frames.map((frame, index) => (
               <div
                 key={frame.frameId || index}
                 className="relative w-16 h-10 bg-slate-800 rounded overflow-hidden flex-shrink-0"
-                title={frame.description || `帧 ${index + 1}`}
+                title={frame.description || t('regenerate.frameAlt', { n: index + 1 })}
               >
                 {frame.base64Image ? (
                   <img
                     src={frame.base64Image.startsWith('data:') ? frame.base64Image : `data:image/jpeg;base64,${frame.base64Image}`}
-                    alt={`帧 ${index + 1}`}
+                    alt={t('regenerate.frameAlt', { n: index + 1 })}
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -335,10 +335,10 @@ export default function CodeComparisonView({ onClose }) {
       {/* 历史版本下拉 */}
       {showHistory && (
         <div className="px-4 py-2 bg-slate-900/30 border-b border-slate-700/50">
-          <div className="text-xs text-slate-500 mb-2">历史版本（点击恢复）</div>
+          <div className="text-xs text-slate-500 mb-2">{t('regenerate.restoreHistory')}</div>
           <div className="flex gap-2">
             {historyVersions.length === 0 ? (
-              <span className="text-xs text-slate-600">暂无历史版本</span>
+              <span className="text-xs text-slate-600">{t('regenerate.noHistory')}</span>
             ) : (
               historyVersions.map(v => (
                 <div
@@ -360,7 +360,7 @@ export default function CodeComparisonView({ onClose }) {
         <div className="flex flex-col min-h-[300px] max-h-[500px]">
           <div className="px-3 py-2 bg-slate-900/30 border-b border-slate-700/50">
             <span className="text-xs font-medium text-slate-400">
-              当前生效 {iteration > 1 ? `(V${iteration - 1})` : ''}
+              {t('regenerate.currentActive')} {iteration > 1 ? `(V${iteration - 1})` : ''}
             </span>
           </div>
           <div className="flex-1 overflow-auto p-3">
@@ -369,7 +369,7 @@ export default function CodeComparisonView({ onClose }) {
                 {currentFile.content}
               </pre>
             ) : (
-              <div className="text-xs text-slate-600">文件不存在</div>
+              <div className="text-xs text-slate-600">{t('regenerate.fileMissing')}</div>
             )}
           </div>
         </div>
@@ -378,7 +378,7 @@ export default function CodeComparisonView({ onClose }) {
         <div className="flex flex-col min-h-[300px] max-h-[500px]">
           <div className="px-3 py-2 bg-blue-900/20 border-b border-slate-700/50">
             <span className="text-xs font-medium text-blue-400">
-              候选 V{iteration}
+              {t('regenerate.candidate', { n: iteration })}
             </span>
             {candidate?.skillName !== skillName && (
               <span className="ml-2 text-xs text-slate-500">
@@ -392,7 +392,7 @@ export default function CodeComparisonView({ onClose }) {
                 {candidateFile.content}
               </pre>
             ) : (
-              <div className="text-xs text-slate-600">文件不存在</div>
+              <div className="text-xs text-slate-600">{t('regenerate.fileMissing')}</div>
             )}
           </div>
         </div>
@@ -407,7 +407,7 @@ export default function CodeComparisonView({ onClose }) {
             className="px-4 py-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 
                      text-slate-300 text-sm rounded-lg"
           >
-            {isDiscarding ? '处理中...' : '放弃'}
+            {isDiscarding ? t('regenerate.processing') : t('regenerate.discard')}
           </button>
           
           <button
@@ -417,7 +417,7 @@ export default function CodeComparisonView({ onClose }) {
             }}
             className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm rounded-lg"
           >
-            📝 修改要求
+            📝 {t('regenerate.editRequirement')}
           </button>
         </div>
 
@@ -430,12 +430,12 @@ export default function CodeComparisonView({ onClose }) {
           {isAccepting ? (
             <>
               <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              处理中...
+              {t('regenerate.processing')}
             </>
           ) : (
             <>
               <span>✓</span>
-              接受 V{iteration}
+              {t('regenerate.accept', { n: iteration })}
             </>
           )}
         </button>

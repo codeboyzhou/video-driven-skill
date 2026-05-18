@@ -1,11 +1,13 @@
 import JSZip from 'jszip'
 import { saveAs } from 'file-saver'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import useAppStore from '../store/useAppStore.js'
 import { deploySkill } from '../api/client.js'
 import { Download, Rocket, Check, AlertCircle, Loader2 } from 'lucide-react'
 
 export default function SkillExport() {
+  const { t } = useTranslation()
   const skillId = useAppStore(s => s.skillId)
   const skillName = useAppStore(s => s.skillName)
   const skillFiles = useAppStore(s => s.skillFiles)
@@ -28,9 +30,9 @@ export default function SkillExport() {
     setDeploying(true); setDeployStatus(null); setDeployMessage('')
     try {
       const result = await deploySkill(skillId)
-      setDeployStatus('success'); setDeployMessage(result.message || '部署成功')
+      setDeployStatus('success'); setDeployMessage(result.message || t('skillExport.deploySuccess'))
     } catch (e) {
-      setDeployStatus('error'); setDeployMessage(e.message || '部署失败')
+      setDeployStatus('error'); setDeployMessage(e.message || t('skillExport.deployFailed'))
     } finally { setDeploying(false) }
   }
 
@@ -49,10 +51,10 @@ export default function SkillExport() {
       <button
         onClick={handleFrontendZip}
         className='btn-ghost'
-        title='下载 Skill ZIP'
+        title={t('skillExport.downloadZipTitle')}
       >
         <Download className='w-3.5 h-3.5' />
-        <span>下载 ZIP</span>
+        <span>{t('skillExport.downloadZip')}</span>
       </button>
 
       <button
@@ -61,9 +63,9 @@ export default function SkillExport() {
         className='btn-primary disabled:opacity-60'
       >
         {deploying ? (
-          <><Loader2 className='w-3.5 h-3.5 animate-spin' /><span>部署中</span></>
+          <><Loader2 className='w-3.5 h-3.5 animate-spin' /><span>{t('skillExport.deploying')}</span></>
         ) : (
-          <><Rocket className='w-3.5 h-3.5' /><span>一键部署</span></>
+          <><Rocket className='w-3.5 h-3.5' /><span>{t('skillExport.oneClickDeploy')}</span></>
         )}
       </button>
 

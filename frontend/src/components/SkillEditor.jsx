@@ -7,8 +7,10 @@ import PartialRegeneratePanel from './PartialRegeneratePanel.jsx'
 import RegeneratePanel from './RegeneratePanel.jsx'
 import KnowledgeBasePanel from './KnowledgeBasePanel.jsx'
 import { Scissors, RefreshCw, BookOpen } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 export default function SkillEditor() {
+  const { t } = useTranslation()
   const skillId = useAppStore(s => s.skillId)
   const skillName = useAppStore(s => s.skillName)
   const skillFiles = useAppStore(s => s.skillFiles)
@@ -88,7 +90,7 @@ export default function SkillEditor() {
   if (!skillId || skillFiles.length === 0) {
     return (
       <div className='flex items-center justify-center h-full text-ink-400 text-sm'>
-        暂无 Skill 文件
+        {t('skillEditor.noFiles')}
       </div>
     )
   }
@@ -114,19 +116,19 @@ export default function SkillEditor() {
           <button
             onClick={() => setShowKnowledgePanel(true)}
             className='btn-ghost hover:border-sage-500/50'
-            title='上传图片/文档作为 skill 运行时的背景知识'
+            title={t('skillEditor.knowledgeTitle')}
           >
             <BookOpen className='w-3.5 h-3.5' />
-            <span>知识库</span>
+            <span>{t('skillEditor.knowledgeBase')}</span>
           </button>
 
           <button
             onClick={() => setShowPartialPanel(true)}
             className='btn-ghost hover:border-umber-500/40'
-            title='选择图片和代码范围进行精准调整'
+            title={t('skillEditor.partialTitle')}
           >
             <Scissors className='w-3.5 h-3.5' />
-            <span>局部调整</span>
+            <span>{t('skillEditor.partialAdjust')}</span>
           </button>
 
           <button
@@ -137,7 +139,7 @@ export default function SkillEditor() {
                 : 'hover:border-ink-900/25'}`}
           >
             <RefreshCw className='w-3.5 h-3.5' />
-            <span>重新生成</span>
+            <span>{t('skillEditor.regenerate')}</span>
             {regeneration.iteration > 0 && (
               <span className='font-mono text-[10px] opacity-70'>({regeneration.iteration})</span>
             )}
@@ -173,7 +175,7 @@ export default function SkillEditor() {
         {/* File tree */}
         <div className='w-52 bg-paper-100/60 border-r hairline flex flex-col'>
           <div className='px-4 py-3 border-b hairline'>
-            <div className='eyebrow'>Files · 文件</div>
+            <div className='eyebrow'>{t('skillEditor.files')}</div>
           </div>
           <div className='flex-1 overflow-y-auto scrollbar-thin py-2'>
             {skillFiles.map(file => (

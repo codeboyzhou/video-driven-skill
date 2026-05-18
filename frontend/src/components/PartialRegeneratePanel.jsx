@@ -1,46 +1,27 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import useAppStore from '../store/useAppStore.js'
+import { getPartialRegenerateModes, getRegenerateTemplates } from '../i18n/helpers.js'
 import { partialRegenerateSkill } from '../api/client.js'
 import FrameGridSelector from './FrameGridSelector.jsx'
 import CodeRangeSelector from './CodeRangeSelector.jsx'
 import { Sparkles, Image as ImageIcon, Code2, Send, X, Loader2, Lightbulb, ChevronDown, ChevronUp, Maximize2, Minimize2 } from 'lucide-react'
 
-// 生成策略选项
-const MODE_OPTIONS = [
-  { 
-    id: 'auto', 
-    label: '智能推荐', 
-    description: '根据选择自动选择最佳模式',
-    icon: Sparkles,
-    color: 'blue'
-  },
-  { 
-    id: 'text', 
-    label: '纯文本优化', 
-    description: '使用配置的文本模型，适合代码调整',
-    icon: Code2,
-    color: 'green'
-  },
-  { 
-    id: 'multimodal', 
-    label: '多模态分析', 
-    description: '使用配置的多模态模型，结合截图理解',
-    icon: ImageIcon,
-    color: 'purple'
-  }
-]
-
-// 常用提示词模板
-const PROMPT_TEMPLATES = [
-  { label: '添加异常处理', value: '请为这段代码添加异常处理逻辑，确保出错时能优雅降级。' },
-  { label: '优化等待逻辑', value: '优化等待逻辑，使用更智能的条件等待代替固定延时。' },
-  { label: '添加日志输出', value: '添加详细的日志输出，方便调试和追踪执行流程。' },
-  { label: '简化代码', value: '简化这段代码，移除冗余逻辑，保持功能不变。' },
-  { label: '添加重试机制', value: '为关键操作添加重试机制，提高稳定性。' },
-  { label: '优化选择器', value: '优化元素选择描述，使其更精准稳定。' },
-]
+const MODE_ICONS = { auto: Sparkles, text: Code2, multimodal: ImageIcon }
+const MODE_COLORS = { auto: 'blue', text: 'green', multimodal: 'purple' }
 
 export default function PartialRegeneratePanel({ onClose, associatedFrames = null, associatedVideoId = null }) {
+  const { t } = useTranslation()
+  const modeOptions = useMemo(
+    () => getPartialRegenerateModes(t).map((m) => ({
+      ...m,
+      icon: MODE_ICONS[m.id],
+      color: MODE_COLORS[m.id],
+    })),
+    [t],
+  )
+  const promptTemplates = useMemo(() => getRegenerateTemplates(t), [t])
+  const partialTips = useMemo(() => t('partialRegenerate.tips', { returnObjects: true }), [t])
   const skillId = useAppStore(s => s.skillId)
   const skillFiles = useAppStore(s => s.skillFiles)
   const storeFrames = useAppStore(s => s.frames)
@@ -151,7 +132,7 @@ export default function PartialRegeneratePanel({ onClose, associatedFrames = nul
   // 开始局部重新生成
   const handleGenerate = async () => {
     if (!additionalPrompt.trim()) {
-      alert('请输入补充要求')
+      alert(t('partialRegenerate.needPrompt'))
       return
     }
     
@@ -196,7 +177,7 @@ export default function PartialRegeneratePanel({ onClose, associatedFrames = nul
       
       onClose()
     } catch (e) {
-      setLogs(prev => [...prev, `❌ 错误：${e.message}`])
+      setLogs(prev => [...prev, `❌ ${e.message}`])
     } finally {
       setIsGenerating(false)
     }
@@ -227,8 +208,8 @@ export default function PartialRegeneratePanel({ onClose, associatedFrames = nul
               <Sparkles className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-white font-semibold text-lg">局部重新生成</h2>
-              <p className="text-slate-400 text-sm">精准调整代码，支持图片参考 + 代码范围选择</p>
+              <h2 className="text-white font-semibold text-lg">{t('partialRegenerate.title')}</h2>
+              <p className="text-slate-400 text-sm">{t('partialRegenerate.subtitle')}</p>
             </div>
           </div>
           
@@ -236,14 +217,14 @@ export default function PartialRegeneratePanel({ onClose, associatedFrames = nul
             <button
               onClick={() => setShowTips(!showTips)}
               className="p-2 text-slate-400 hover:text-yellow-400 hover:bg-slate-800 rounded-lg transition-colors"
-              title="使用技巧"
+              title={t('partialRegenerate.tipsTitle')}
             >
               <Lightbulb className="w-5 h-5" />
             </button>
             <button
               onClick={() => setIsMaximized(!isMaximized)}
               className="p-2 text-slate-400 hover:text-blue-400 hover:bg-slate-800 rounded-lg transition-colors"
-              title={isMaximized ? '退出全屏' : '全屏'}
+              title={isMaximized ? t('regenerate.exitFullscreen') : t('regenerate.fullscreen')}
             >
               {isMaximized ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
             </button>
@@ -262,12 +243,11 @@ export default function PartialRegeneratePanel({ onClose, associatedFrames = nul
             <div className="flex items-start gap-3">
               <Lightbulb className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
               <div className="flex-1 text-sm text-blue-200">
-                <p className="font-medium mb-1">💡 使用技巧</p>
+                <p className="font-medium mb-1">💡 {t('partialRegenerate.tipsTitle')}</p>
                 <ul className="space-y-1 text-blue-300/80">
-                  <li>• 只输入文字 → 全局调整代码（快速文本模式）</li>
-                  <li>• 选择代码行 → 局部精准修改（仅修改选中部分）</li>
-                  <li>• 添加1-2张图 → 结合界面理解操作（多模态模式）</li>
-                  <li>• 图+代码 → 最精准的局部调整（推荐用于复杂场景）</li>
+                  {partialTips.map((tip, idx) => (
+                    <li key={idx}>• {tip}</li>
+                  ))}
                 </ul>
               </div>
               <button 
@@ -288,31 +268,31 @@ export default function PartialRegeneratePanel({ onClose, associatedFrames = nul
             <div className="px-4 py-3 border-b border-slate-800">
               <div className="flex items-center gap-2 mb-1">
                 <ImageIcon className="w-4 h-4 text-slate-400" />
-                <span className="text-slate-300 font-medium">参考图片</span>
-                <span className="text-xs text-slate-500">(可选0-2张)</span>
+                <span className="text-slate-300 font-medium">{t('partialRegenerate.referenceImages')}</span>
+                <span className="text-xs text-slate-500">{t('partialRegenerate.optional02')}</span>
               </div>
               <p className="text-xs text-slate-500">
                 {frames.length === 0 
-                  ? '暂无可选图片，可使用纯文本模式'
+                  ? t('partialRegenerate.noImagesTextMode')
                   : selectedFrameIds.length === 0 
-                    ? '未选择图片（可选），将使用纯文本模式'
-                    : `已选择 ${selectedFrameIds.length}/2 张图片`
+                    ? t('partialRegenerate.noImagesSelected')
+                    : t('partialRegenerate.imagesSelected', { count: selectedFrameIds.length })
                 }
               </p>
               {/* 帧来源指示器 */}
               {frameSource !== 'none' && (
                 <div className="mt-2 flex items-center gap-1.5">
-                  <span className="text-[10px] text-slate-500">来源:</span>
+                  <span className="text-[10px] text-slate-500">{t('partialRegenerate.source')}</span>
                   {frameSource === 'skill' ? (
                     <span className="text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">
-                      Skill关联帧
+                      {t('partialRegenerate.skillFrames')}
                     </span>
                   ) : (
                     <span className="text-[10px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">
-                      当前会话帧
+                      {t('partialRegenerate.sessionFrames')}
                     </span>
                   )}
-                  <span className="text-[10px] text-slate-600">{frames.length} 帧可用</span>
+                  <span className="text-[10px] text-slate-600">{t('regenerate.framesAvailable', { count: frames.length })}</span>
                 </div>
               )}
             </div>
@@ -332,19 +312,19 @@ export default function PartialRegeneratePanel({ onClose, associatedFrames = nul
             <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Code2 className="w-4 h-4 text-slate-400" />
-                <span className="text-slate-300 font-medium">代码范围</span>
-                <span className="text-xs text-slate-500">(可选)</span>
+                <span className="text-slate-300 font-medium">{t('partialRegenerate.codeRange')}</span>
+                <span className="text-xs text-slate-500">{t('partialRegenerate.optional')}</span>
               </div>
               {selectedCodeRange && (
                 <div className="flex items-center gap-2">
                   <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded">
-                    第{selectedCodeRange.start}-{selectedCodeRange.end}行
+                    {t('partialRegenerate.lines', { start: selectedCodeRange.start, end: selectedCodeRange.end })}
                   </span>
                   <button
                     onClick={() => setSelectedCodeRange(null)}
                     className="text-xs text-slate-500 hover:text-slate-300"
                   >
-                    清除
+                    {t('partialRegenerate.clear')}
                   </button>
                 </div>
               )}
@@ -365,10 +345,10 @@ export default function PartialRegeneratePanel({ onClose, associatedFrames = nul
             {/* Mode Selection */}
             <div className="px-4 py-3 border-b border-slate-800">
               <label className="text-xs text-slate-500 uppercase tracking-wider mb-3 block">
-                生成策略
+                {t('partialRegenerate.strategy')}
               </label>
               <div className="space-y-2">
-                {MODE_OPTIONS.map(option => {
+                {modeOptions.map(option => {
                   const Icon = option.icon
                   const isRecommended = mode === 'auto' && effectiveMode === option.id
                   const isSelected = mode === option.id
@@ -393,7 +373,7 @@ export default function PartialRegeneratePanel({ onClose, associatedFrames = nul
                           </span>
                           {isRecommended && (
                             <span className="text-[10px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">
-                              推荐
+                              {t('partialRegenerate.recommended')}
                             </span>
                           )}
                         </div>
@@ -409,13 +389,13 @@ export default function PartialRegeneratePanel({ onClose, associatedFrames = nul
             <div className="flex-1 flex flex-col p-4">
               <div className="flex items-center justify-between mb-2">
                 <label className="text-xs text-slate-500 uppercase tracking-wider">
-                  修改要求
+                  {t('partialRegenerate.editRequirement')}
                 </label>
                 <button
                   onClick={() => setShowTemplates(!showTemplates)}
                   className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
                 >
-                  常用提示词
+                  {t('regenerate.commonPrompts')}
                   {showTemplates ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                 </button>
               </div>
@@ -423,7 +403,7 @@ export default function PartialRegeneratePanel({ onClose, associatedFrames = nul
               {/* Templates Dropdown */}
               {showTemplates && (
                 <div className="mb-3 bg-slate-800 border border-slate-700 rounded-lg overflow-hidden">
-                  {PROMPT_TEMPLATES.map((template, idx) => (
+                  {promptTemplates.map((template, idx) => (
                     <button
                       key={idx}
                       onClick={() => applyTemplate(template)}
@@ -438,14 +418,14 @@ export default function PartialRegeneratePanel({ onClose, associatedFrames = nul
               <textarea
                 value={additionalPrompt}
                 onChange={(e) => setAdditionalPrompt(e.target.value)}
-                placeholder="请描述你想要做的修改...\n例如：优化这段代码的异常处理，添加重试机制"
+                placeholder={t('regenerate.placeholder')}
                 className="flex-1 bg-slate-800 border border-slate-700 rounded-xl p-3 text-sm text-slate-200 placeholder-slate-500 resize-none focus:border-blue-500 focus:outline-none transition-colors"
               />
               
               {/* Stats */}
               <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
-                <span>预估消耗: ~{estimatedTokens} tokens</span>
-                <span>{additionalPrompt.length} 字符</span>
+                <span>{t('partialRegenerate.estimatedTokens', { count: estimatedTokens })}</span>
+                <span>{t('regenerate.charCount', { count: additionalPrompt.length })}</span>
               </div>
             </div>
             
@@ -466,7 +446,7 @@ export default function PartialRegeneratePanel({ onClose, associatedFrames = nul
                   className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm rounded-lg transition-colors"
                   disabled={isGenerating}
                 >
-                  清除选择
+                  {t('partialRegenerate.clearSelection')}
                 </button>
                 <button
                   onClick={handleGenerate}
@@ -476,12 +456,12 @@ export default function PartialRegeneratePanel({ onClose, associatedFrames = nul
                   {isGenerating ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      生成中...
+                      {t('regenerate.generating')}
                     </>
                   ) : (
                     <>
                       <Send className="w-4 h-4" />
-                      开始重新生成
+                      {t('partialRegenerate.startRegenerate')}
                     </>
                   )}
                 </button>
@@ -492,20 +472,20 @@ export default function PartialRegeneratePanel({ onClose, associatedFrames = nul
                 {selectedFrameIds.length > 0 && (
                   <span className="flex items-center gap-1">
                     <ImageIcon className="w-3 h-3" />
-                    {selectedFrameIds.length} 张图片
+                    {t('partialRegenerate.imageCount', { count: selectedFrameIds.length })}
                   </span>
                 )}
                 {selectedCodeRange && (
                   <span className="flex items-center gap-1">
                     <Code2 className="w-3 h-3" />
-                    第{selectedCodeRange.start}-{selectedCodeRange.end}行
+                    {t('partialRegenerate.lineRange', { start: selectedCodeRange.start, end: selectedCodeRange.end })}
                   </span>
                 )}
                 <span className={`flex items-center gap-1 ${
                   effectiveMode === 'multimodal' ? 'text-purple-400' : 'text-green-400'
                 }`}>
                   <Sparkles className="w-3 h-3" />
-                  {effectiveMode === 'multimodal' ? '多模态' : '纯文本'}
+                  {effectiveMode === 'multimodal' ? t('partialRegenerate.modeMultimodal') : t('partialRegenerate.modeText')}
                 </span>
               </div>
             </div>

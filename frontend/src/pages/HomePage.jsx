@@ -1,5 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation, Trans } from 'react-i18next'
+import LanguageSwitcher from '../components/LanguageSwitcher.jsx'
+import SegmentedControl from '../components/SegmentedControl.jsx'
 import {
   uploadVideo,
   fetchSkillList,
@@ -13,6 +16,7 @@ import ScreenRecorderModal from '../components/ScreenRecorderModal.jsx'
 import { isScreenRecordingSupported } from '../utils/screenRecorder.js'
 
 export default function HomePage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const setVideo = useAppStore(s => s.setVideo)
   const setFrames = useAppStore(s => s.setFrames)
@@ -58,7 +62,7 @@ export default function HomePage() {
 
   const handleFile = async (file, onProgress = setProgress) => {
     if (!file || !file.type.startsWith('video/')) {
-      setError('请上传视频文件（MP4、MOV、WebM 等）')
+      setError(t('home.invalidVideo'))
       return
     }
     setError(null); setUploading(true); onProgress(0); reset()
@@ -85,7 +89,7 @@ export default function HomePage() {
   const handleImportSkill = async (file) => {
     if (!file) return
     if (!file.name.toLowerCase().endsWith('.zip')) {
-      setError('请选择 Skill 导出的 ZIP 文件'); return
+      setError(t('home.invalidZip')); return
     }
     setError(null); setImporting(true); setImportProgress(0)
     try {
@@ -93,7 +97,7 @@ export default function HomePage() {
       setSkill(imported.skillId, imported.skillName, imported.files, imported.variables || [])
       setActiveTab('skill')
       navigate(`/playground/${imported.skillId}`)
-    } catch (e) { setError('导入失败：' + e.message) }
+    } catch (e) { setError(t('common.importFailed', { message: e.message })) }
     finally { setImporting(false); setImportProgress(0) }
   }
 
@@ -155,6 +159,9 @@ export default function HomePage() {
 
         {/* ── Masthead ── */}
         <header className='flex items-end justify-between pb-8 border-b hairline stagger'>
+          <div className='md:hidden absolute top-10 right-6'>
+            <LanguageSwitcher />
+          </div>
           <div>
             <div className='eyebrow mb-3 flex items-center gap-3'>
               <span>Video Driven</span>
@@ -162,15 +169,20 @@ export default function HomePage() {
               <span>Studio</span>
             </div>
             <h1 className='font-display text-[52px] leading-[1.05] text-ink-900 tracking-[-0.02em]'>
-              视频，<span className='italic text-umber-500' style={{ fontVariationSettings: "'SOFT' 60, 'opsz' 144" }}>化作</span>
-              可复用的 Skill
+              <Trans
+                i18nKey='home.heroTitle'
+                components={{
+                  em: <span className='italic text-umber-500' style={{ fontVariationSettings: "'SOFT' 60, 'opsz' 144" }} />,
+                }}
+              />
             </h1>
             <p className='mt-4 text-ink-500 text-[14px] max-w-[480px] leading-relaxed'>
-              上传一段操作录屏，让 AI 读懂你的每一步操作，生成可直接运行、可再次调整的自动化脚本。
+              {t('home.heroSubtitle')}
             </p>
           </div>
 
-          <div className='hidden md:flex flex-col items-end gap-2 pb-1'>
+          <div className='hidden md:flex flex-col items-end gap-3 pb-1'>
+            <LanguageSwitcher />
             <div className='eyebrow'>Version 1.0</div>
             <div className='font-mono text-[11px] text-ink-400 tracking-wide'>
               {new Date().getFullYear()} · Open Source
@@ -201,7 +213,7 @@ export default function HomePage() {
                   <div className='inline-flex flex-col items-center gap-4'>
                     <RingProgress value={progress} />
                     <div>
-                      <div className='font-display text-xl text-ink-900 mb-1'>正在上传</div>
+                      <div className='font-display text-xl text-ink-900 mb-1'>{t('common.uploading')}</div>
                       <div className='font-mono text-[11px] text-ink-400 tracking-wider'>{progress}%</div>
                     </div>
                   </div>
@@ -210,14 +222,14 @@ export default function HomePage() {
                 <div className='relative text-center'>
                   <div className='eyebrow mb-4'>Step 01 · Upload</div>
                   <div className='font-display text-[26px] leading-tight text-ink-900 mb-2'>
-                    上传操作视频
+                    {t('home.uploadVideo')}
                   </div>
                   <p className='text-ink-500 text-[12.5px] max-w-[220px] mx-auto leading-relaxed mb-5'>
-                    拖拽文件到此处，支持 MP4、MOV，最大 500MB
+                    {t('home.uploadHint')}
                   </p>
                   <div className='inline-flex items-center gap-2 text-[12px] text-umber-600 font-medium
                                   transition-transform duration-500 group-hover:translate-x-1'>
-                    <span>选择文件</span>
+                    <span>{t('home.chooseFile')}</span>
                     <ArrowIcon />
                   </div>
                 </div>
@@ -238,13 +250,13 @@ export default function HomePage() {
                     <RecordIcon />
                   </div>
                   <div className='font-display text-[26px] leading-tight text-ink-900 mb-2'>
-                    开始录屏
+                    {t('home.startRecording')}
                   </div>
                   <p className='text-ink-500 text-[12.5px] max-w-[220px] mx-auto leading-relaxed mb-5'>
-                    共享屏幕或窗口，录完预览确认后自动上传
+                    {t('home.recordHint')}
                   </p>
                   <div className='inline-flex items-center gap-2 text-[12px] text-clay-600 font-medium transition-transform duration-500 group-hover:translate-x-1'>
-                    <span>立即录制</span>
+                    <span>{t('home.recordNow')}</span>
                     <ArrowIcon />
                   </div>
                 </div>
@@ -270,13 +282,13 @@ export default function HomePage() {
                 <ImportIcon />
               </div>
               <div className='font-display text-[17px] text-ink-900 mb-1'>
-                {importing ? '导入中...' : '导入 Skill ZIP'}
+                {importing ? t('common.importing') : t('home.importSkillZip')}
               </div>
               {importing && (
                 <div className='font-mono text-[11px] text-umber-600 tracking-wider'>{importProgress}%</div>
               )}
               {!importing && (
-                <p className='text-ink-400 text-[12px]'>从导出的 ZIP 包恢复技能</p>
+                <p className='text-ink-400 text-[12px]'>{t('home.importSkillHint')}</p>
               )}
             </div>
 
@@ -291,9 +303,9 @@ export default function HomePage() {
               <div className='w-11 h-11 rounded-xl bg-paper-200/70 flex items-center justify-center text-ink-500 mb-3 group-hover:bg-umber-50 transition-colors duration-300'>
                 <BrowseIcon />
               </div>
-              <div className='font-display text-[17px] text-ink-900 mb-1'>全部技能</div>
+              <div className='font-display text-[17px] text-ink-900 mb-1'>{t('home.allSkills')}</div>
               <p className='text-ink-400 text-[12px]'>
-                管理、运行和导出所有技能
+                {t('home.allSkillsHint')}
               </p>
             </div>
           </div>
@@ -312,15 +324,15 @@ export default function HomePage() {
           <section className='card-paper p-6'>
             <div className='flex items-end justify-between mb-5'>
               <div>
-                <div className='eyebrow mb-1.5'>Skills · 作品集</div>
-                <h3 className='font-display text-lg text-ink-900'>最近生成</h3>
+                <div className='eyebrow mb-1.5'>{t('home.recentSkillsEyebrow')}</div>
+                <h3 className='font-display text-lg text-ink-900'>{t('home.recentSkills')}</h3>
               </div>
               {skills.length > 5 && (
                 <button
                   onClick={() => { reset(); setActiveTab('skill'); navigate('/playground/history') }}
                   className='btn-ghost'
                 >
-                  查看全部
+                  {t('home.viewAll')}
                   <ArrowIcon small />
                 </button>
               )}
@@ -329,7 +341,7 @@ export default function HomePage() {
             {loadingSkills ? (
               <SkillListSkeleton />
             ) : skills.length === 0 ? (
-              <EmptyBlock hint='尚未生成任何 Skill' />
+              <EmptyBlock hint={t('home.noSkillsYet')} />
             ) : (
               <ul className='divide-y divide-ink-900/[0.06]'>
                 {skills.map((skill, idx) => (
@@ -343,7 +355,7 @@ export default function HomePage() {
                     </div>
                     <div className='flex-1 min-w-0'>
                       <div className='font-display text-[15px] text-ink-900 truncate leading-tight'>
-                        {skill.skillName || '未命名'}
+                        {skill.skillName || t('common.unnamed')}
                       </div>
                       <div className='mt-0.5 flex items-center gap-2'>
                         {skill.platform && (
@@ -369,21 +381,18 @@ export default function HomePage() {
           <section className='card-paper p-6'>
             <div className='flex items-end justify-between mb-5'>
               <div>
-                <div className='eyebrow mb-1.5'>Archive · 素材库</div>
-                <h3 className='font-display text-lg text-ink-900'>历史归档</h3>
+                <div className='eyebrow mb-1.5'>{t('home.archiveEyebrow')}</div>
+                <h3 className='font-display text-lg text-ink-900'>{t('home.archive')}</h3>
               </div>
-              <div className='inline-flex rounded-full bg-paper-200/60 p-1 text-[11px]'>
-                <button
-                  onClick={() => setArchiveTab('videos')}
-                  className={`px-3 py-1 rounded-full transition-all duration-300
-                    ${archiveTab === 'videos' ? 'bg-ink-900 text-paper-50 shadow-soft' : 'text-ink-500 hover:text-ink-900'}`}
-                >视频 {videoArchives.length}</button>
-                <button
-                  onClick={() => setArchiveTab('frames')}
-                  className={`px-3 py-1 rounded-full transition-all duration-300
-                    ${archiveTab === 'frames' ? 'bg-ink-900 text-paper-50 shadow-soft' : 'text-ink-500 hover:text-ink-900'}`}
-                >帧 {frameArchives.length}</button>
-              </div>
+              <SegmentedControl
+                ariaLabel={t('home.archive')}
+                value={archiveTab}
+                onChange={setArchiveTab}
+                options={[
+                  { id: 'videos', label: `${t('home.videosTab')} ${videoArchives.length}` },
+                  { id: 'frames', label: `${t('home.framesTab')} ${frameArchives.length}` },
+                ]}
+              />
             </div>
 
             <div className='min-h-[280px]'>
@@ -393,7 +402,7 @@ export default function HomePage() {
                 </div>
               ) : archiveTab === 'videos' ? (
                 videoArchives.length === 0 ? (
-                  <EmptyBlock hint='尚未归档视频' />
+                  <EmptyBlock hint={t('home.noVideosArchived')} />
                 ) : (
                   <ul className='space-y-2 max-h-[340px] overflow-y-auto scrollbar-thin pr-1'>
                     {videoArchives.map(video => (
@@ -406,7 +415,7 @@ export default function HomePage() {
                         <div className='flex-1 min-w-0'>
                           <div className='text-[13px] text-ink-900 truncate'>{video.filename}</div>
                           <div className='mt-0.5 font-mono text-[10px] text-ink-400 tracking-wide'>
-                            {video.frameCount > 0 ? `${video.frameCount} 帧` : '尚未抽帧'}
+                            {video.frameCount > 0 ? t('home.frameCount', { count: video.frameCount }) : t('home.framesNotExtracted')}
                             <span className='divider-dot'></span>
                             {formatSize(video.fileSize)}
                           </div>
@@ -418,7 +427,7 @@ export default function HomePage() {
                 )
               ) : (
                 frameArchives.length === 0 ? (
-                  <EmptyBlock hint='尚未归档帧' />
+                  <EmptyBlock hint={t('home.noFramesArchived')} />
                 ) : (
                   <div className='grid grid-cols-3 gap-2 max-h-[340px] overflow-y-auto scrollbar-thin pr-1'>
                     {frameArchives.map(frame => (
@@ -432,7 +441,7 @@ export default function HomePage() {
                         )}
                         <div className='absolute inset-0 bg-ink-900/0 group-hover:bg-ink-900/55 transition-colors duration-300 flex items-center justify-center'>
                           <span className='text-[11px] text-paper-50 font-medium tracking-wider opacity-0 group-hover:opacity-100 transition-opacity duration-300'>
-                            使用
+                            {t('common.use')}
                           </span>
                         </div>
                       </div>
