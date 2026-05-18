@@ -5,7 +5,10 @@
 <h1 align="center">Video Driven Skill</h1>
 
 <p align="center">
-  <strong>将操作录屏转化为可复用的自动化技能。</strong>
+  <strong>自动化，从真实操作开始。</strong>
+</p>
+<p align="center">
+  把屏幕录屏变成可运行、可编辑、可复用的 Skill。
 </p>
 
 <p align="center">

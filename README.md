@@ -5,7 +5,10 @@
 <h1 align="center">Video Driven Skill</h1>
 
 <p align="center">
-  <strong>Turn operation recordings into reusable automation skills.</strong>
+  <strong>Automate from how you actually work.</strong>
+</p>
+<p align="center">
+  Turn screen recordings into skills you can run, edit, and reuse.
 </p>
 
 <p align="center">
