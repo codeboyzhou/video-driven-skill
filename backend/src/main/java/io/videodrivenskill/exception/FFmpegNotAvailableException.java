@@ -1,7 +1,6 @@
 package io.videodrivenskill.exception;
 
 import io.videodrivenskill.model.ApiError;
-
 import java.io.IOException;
 
 public class FFmpegNotAvailableException extends RuntimeException {
@@ -27,7 +26,8 @@ public class FFmpegNotAvailableException extends RuntimeException {
     }
 
     String lower = msg.toLowerCase();
-    boolean isFFmpegNotFound = lower.contains("cannot run program")
+    boolean isFFmpegNotFound =
+        lower.contains("cannot run program")
             || lower.contains("no such file or directory")
             || lower.contains("createprocess error=2")
             || lower.contains("系统找不到指定的文件");
@@ -38,9 +38,6 @@ public class FFmpegNotAvailableException extends RuntimeException {
   }
 
   public ApiError toApiError() {
-    return ApiError.builder()
-        .code(CODE)
-        .message(getMessage())
-        .build();
+    return ApiError.builder().code(CODE).message(getMessage()).build();
   }
 }

@@ -1,17 +1,20 @@
 package io.videodrivenskill.service;
 
-import io.videodrivenskill.model.GenerateSkillRequest;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.extern.slf4j.Slf4j;
-import okhttp3.*;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-
+import io.videodrivenskill.model.GenerateSkillRequest;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import lombok.extern.slf4j.Slf4j;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
@@ -26,11 +29,14 @@ public class AIService {
   @Value("${app.ai-model}")
   private String model;
 
-  private final OkHttpClient httpClient = new OkHttpClient.Builder()
-      .connectTimeout(60, TimeUnit.SECONDS)
-      .readTimeout(600, TimeUnit.SECONDS)
-      .writeTimeout(120, TimeUnit.SECONDS)
-      .build();
+  private static final MediaType JSON_MEDIA_TYPE = MediaType.get("application/json");
+
+  private final OkHttpClient httpClient =
+      new OkHttpClient.Builder()
+          .connectTimeout(60, TimeUnit.SECONDS)
+          .readTimeout(600, TimeUnit.SECONDS)
+          .writeTimeout(120, TimeUnit.SECONDS)
+          .build();
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -47,7 +53,8 @@ public class AIService {
     String configured = request.getAiConfig() != null ? request.getAiConfig().getApiKey() : null;
     String effectiveApiKey = configured == null || configured.isBlank() ? apiKey : configured;
     if (effectiveApiKey == null || effectiveApiKey.isBlank()) {
-      throw new IllegalStateException("AI_API_KEY is not configured. Please set it in .env or provide it in visual model settings.");
+      throw new IllegalStateException(
+          "AI_API_KEY is not configured. Please set it in .env or provide it in visual model settings.");
     }
     return effectiveApiKey;
   }
@@ -61,18 +68,24 @@ public class AIService {
     return effectiveBaseUrl.replaceAll("/+$", "");
   }
 
-  public Map<String, Object> generateSkill(GenerateSkillRequest request, Consumer<String> logger) throws IOException {
+  public Map<String, Object> generateSkill(GenerateSkillRequest request, Consumer<String> logger)
+      throws IOException {
     return generateSkill(request, null, logger);
   }
 
-  public Map<String, Object> generateSkill(GenerateSkillRequest request, String additionalPrompt, Consumer<String> logger) throws IOException {
+  public Map<String, Object> generateSkill(
+      GenerateSkillRequest request, String additionalPrompt, Consumer<String> logger)
+      throws IOException {
     return generateSkillWithImages(request, additionalPrompt, model, logger);
   }
 
-  /**
-   * 使用图片的多模态生成（首次生成时使用）
-   */
-  public Map<String, Object> generateSkillWithImages(GenerateSkillRequest request, String additionalPrompt, String useModel, Consumer<String> logger) throws IOException {
+  /** 使用图片的多模态生成（首次生成时使用） */
+  public Map<String, Object> generateSkillWithImages(
+      GenerateSkillRequest request,
+      String additionalPrompt,
+      String useModel,
+      Consumer<String> logger)
+      throws IOException {
     String effectiveModel = resolveModel(request, useModel);
     String effectiveBaseUrl = resolveBaseUrl(request);
     String effectiveApiKey = resolveApiKey(request);
@@ -104,12 +117,13 @@ public class AIService {
     logger.accept("📡 发送请求到 " + effectiveModel + "，请求大小约 " + approxKb + " KB");
     logger.accept("🔧 视觉模型接口：" + effectiveBaseUrl);
 
-    Request httpRequest = new Request.Builder()
-        .url(effectiveBaseUrl + "/chat/completions")
-        .post(RequestBody.create(jsonBody, MediaType.parse("application/json")))
-        .header("Authorization", "Bearer " + effectiveApiKey)
-        .header("Content-Type", "application/json")
-        .build();
+    Request httpRequest =
+        new Request.Builder()
+            .url(effectiveBaseUrl + "/chat/completions")
+            .post(RequestBody.create(jsonBody, JSON_MEDIA_TYPE))
+            .header("Authorization", "Bearer " + effectiveApiKey)
+            .header("Content-Type", "application/json")
+            .build();
 
     logger.accept("⏳ 等待 AI 响应中...");
     long start = System.currentTimeMillis();
@@ -129,21 +143,23 @@ public class AIService {
     }
   }
 
-  /**
-   * 纯文本生成（重新生成时使用，不携带图片）
-   */
+  /** 纯文本生成（重新生成时使用，不携带图片） */
   public Map<String, Object> generateSkillTextOnly(
       String requirement,
       String additionalPrompt,
       List<SkillContextFrame> frames,
       String currentCode,
       String useModel,
-      Consumer<String> logger) throws IOException {
+      Consumer<String> logger)
+      throws IOException {
     String effectiveModel = resolveModel(useModel);
-    
+
     logger.accept("📋 开始纯文本重新生成，诉求：" + requirement);
     if (additionalPrompt != null && !additionalPrompt.trim().isEmpty()) {
-      logger.accept("📝 补充要求：" + additionalPrompt.substring(0, Math.min(additionalPrompt.length(), 100)) + "...");
+      logger.accept(
+          "📝 补充要求："
+              + additionalPrompt.substring(0, Math.min(additionalPrompt.length(), 100))
+              + "...");
     }
 
     List<Map<String, Object>> messages = new ArrayList<>();
@@ -155,7 +171,9 @@ public class AIService {
 
     Map<String, Object> userMsg = new HashMap<>();
     userMsg.put("role", "user");
-    userMsg.put("content", buildTextOnlyContent(requirement, additionalPrompt, frames, currentCode, logger));
+    userMsg.put(
+        "content",
+        buildTextOnlyContent(requirement, additionalPrompt, frames, currentCode, logger));
     messages.add(userMsg);
 
     Map<String, Object> requestBody = new HashMap<>();
@@ -167,12 +185,13 @@ public class AIService {
     int approxKb = jsonBody.length() / 1024;
     logger.accept("📡 发送请求到 " + effectiveModel + "（纯文本模式），请求大小约 " + approxKb + " KB");
 
-    Request httpRequest = new Request.Builder()
-        .url(baseUrl + "/chat/completions")
-        .post(RequestBody.create(jsonBody, MediaType.parse("application/json")))
-        .header("Authorization", "Bearer " + apiKey)
-        .header("Content-Type", "application/json")
-        .build();
+    Request httpRequest =
+        new Request.Builder()
+            .url(baseUrl + "/chat/completions")
+            .post(RequestBody.create(jsonBody, JSON_MEDIA_TYPE))
+            .header("Authorization", "Bearer " + apiKey)
+            .header("Content-Type", "application/json")
+            .build();
 
     logger.accept("⏳ 等待 AI 响应中...");
     long start = System.currentTimeMillis();
@@ -194,9 +213,7 @@ public class AIService {
 
   // ==================== 局部重新生成新方法 ====================
 
-  /**
-   * 局部重新生成 - 多模态模式（携带图片 + 代码范围）
-   */
+  /** 局部重新生成 - 多模态模式（携带图片 + 代码范围） */
   public Map<String, Object> generatePartialWithImages(
       String requirement,
       String additionalPrompt,
@@ -204,13 +221,17 @@ public class AIService {
       String currentFullCode,
       io.videodrivenskill.controller.SkillController.CodeRange selectedCodeRange,
       String useModel,
-      Consumer<String> logger) throws IOException {
+      Consumer<String> logger)
+      throws IOException {
     String effectiveModel = resolveModel(useModel);
-    
+
     logger.accept("📋 开始局部重新生成（多模态模式），诉求：" + requirement);
     logger.accept("🖼️ 携带 " + (selectedFrames != null ? selectedFrames.size() : 0) + " 张参考图片");
     if (additionalPrompt != null && !additionalPrompt.trim().isEmpty()) {
-      logger.accept("📝 补充要求：" + additionalPrompt.substring(0, Math.min(additionalPrompt.length(), 100)) + "...");
+      logger.accept(
+          "📝 补充要求："
+              + additionalPrompt.substring(0, Math.min(additionalPrompt.length(), 100))
+              + "...");
     }
 
     List<Map<String, Object>> messages = new ArrayList<>();
@@ -222,8 +243,15 @@ public class AIService {
 
     Map<String, Object> userMsg = new HashMap<>();
     userMsg.put("role", "user");
-    userMsg.put("content", buildPartialContentWithImages(
-        requirement, additionalPrompt, selectedFrames, currentFullCode, selectedCodeRange, logger));
+    userMsg.put(
+        "content",
+        buildPartialContentWithImages(
+            requirement,
+            additionalPrompt,
+            selectedFrames,
+            currentFullCode,
+            selectedCodeRange,
+            logger));
     messages.add(userMsg);
 
     Map<String, Object> requestBody = new HashMap<>();
@@ -235,12 +263,13 @@ public class AIService {
     int approxKb = jsonBody.length() / 1024;
     logger.accept("📡 发送请求到 " + effectiveModel + "（多模态局部模式），请求大小约 " + approxKb + " KB");
 
-    Request httpRequest = new Request.Builder()
-        .url(baseUrl + "/chat/completions")
-        .post(RequestBody.create(jsonBody, MediaType.parse("application/json")))
-        .header("Authorization", "Bearer " + apiKey)
-        .header("Content-Type", "application/json")
-        .build();
+    Request httpRequest =
+        new Request.Builder()
+            .url(baseUrl + "/chat/completions")
+            .post(RequestBody.create(jsonBody, JSON_MEDIA_TYPE))
+            .header("Authorization", "Bearer " + apiKey)
+            .header("Content-Type", "application/json")
+            .build();
 
     logger.accept("⏳ 等待 AI 响应中...");
     long start = System.currentTimeMillis();
@@ -260,9 +289,7 @@ public class AIService {
     }
   }
 
-  /**
-   * 局部重新生成 - 纯文本模式（代码范围）
-   */
+  /** 局部重新生成 - 纯文本模式（代码范围） */
   public Map<String, Object> generatePartialTextOnly(
       String requirement,
       String additionalPrompt,
@@ -270,12 +297,16 @@ public class AIService {
       String currentFullCode,
       io.videodrivenskill.controller.SkillController.CodeRange selectedCodeRange,
       String useModel,
-      Consumer<String> logger) throws IOException {
+      Consumer<String> logger)
+      throws IOException {
     String effectiveModel = resolveModel(useModel);
-    
+
     logger.accept("📋 开始局部重新生成（纯文本模式），诉求：" + requirement);
     if (additionalPrompt != null && !additionalPrompt.trim().isEmpty()) {
-      logger.accept("📝 补充要求：" + additionalPrompt.substring(0, Math.min(additionalPrompt.length(), 100)) + "...");
+      logger.accept(
+          "📝 补充要求："
+              + additionalPrompt.substring(0, Math.min(additionalPrompt.length(), 100))
+              + "...");
     }
 
     List<Map<String, Object>> messages = new ArrayList<>();
@@ -287,8 +318,15 @@ public class AIService {
 
     Map<String, Object> userMsg = new HashMap<>();
     userMsg.put("role", "user");
-    userMsg.put("content", buildPartialTextContent(
-        requirement, additionalPrompt, contextFrames, currentFullCode, selectedCodeRange, logger));
+    userMsg.put(
+        "content",
+        buildPartialTextContent(
+            requirement,
+            additionalPrompt,
+            contextFrames,
+            currentFullCode,
+            selectedCodeRange,
+            logger));
     messages.add(userMsg);
 
     Map<String, Object> requestBody = new HashMap<>();
@@ -300,12 +338,13 @@ public class AIService {
     int approxKb = jsonBody.length() / 1024;
     logger.accept("📡 发送请求到 " + effectiveModel + "（纯文本局部模式），请求大小约 " + approxKb + " KB");
 
-    Request httpRequest = new Request.Builder()
-        .url(baseUrl + "/chat/completions")
-        .post(RequestBody.create(jsonBody, MediaType.parse("application/json")))
-        .header("Authorization", "Bearer " + apiKey)
-        .header("Content-Type", "application/json")
-        .build();
+    Request httpRequest =
+        new Request.Builder()
+            .url(baseUrl + "/chat/completions")
+            .post(RequestBody.create(jsonBody, JSON_MEDIA_TYPE))
+            .header("Authorization", "Bearer " + apiKey)
+            .header("Content-Type", "application/json")
+            .build();
 
     logger.accept("⏳ 等待 AI 响应中...");
     long start = System.currentTimeMillis();
@@ -325,30 +364,38 @@ public class AIService {
     }
   }
 
-  private List<Map<String, Object>> buildUserContent(GenerateSkillRequest request, Consumer<String> logger) {
+  private List<Map<String, Object>> buildUserContent(
+      GenerateSkillRequest request, Consumer<String> logger) {
     return buildUserContent(request, null, logger);
   }
 
-  private List<Map<String, Object>> buildUserContent(GenerateSkillRequest request, String additionalPrompt, Consumer<String> logger) {
+  private List<Map<String, Object>> buildUserContent(
+      GenerateSkillRequest request, String additionalPrompt, Consumer<String> logger) {
     List<Map<String, Object>> content = new ArrayList<>();
-    
+
     // 基础诉求
     StringBuilder promptBuilder = new StringBuilder();
     promptBuilder.append("用户诉求：").append(request.getRequirement()).append("\n\n");
-    
+
     // 补充要求（重新生成时使用）
     if (additionalPrompt != null && !additionalPrompt.trim().isEmpty()) {
       promptBuilder.append("补充要求：\n").append(additionalPrompt).append("\n\n");
     }
-    
+
     promptBuilder.append("以下是操作视频的关键帧截图：");
     content.add(textPart(promptBuilder.toString()));
 
     if (request.getFrames() != null) {
       for (int i = 0; i < request.getFrames().size(); i++) {
         GenerateSkillRequest.AnnotatedFrame frame = request.getFrames().get(i);
-        logger.accept("🖼️  处理帧 " + (i + 1) + "/" + request.getFrames().size()
-            + "（时间戳 " + String.format("%.1f", frame.getTimestamp()) + " 秒）");
+        logger.accept(
+            "🖼️  处理帧 "
+                + (i + 1)
+                + "/"
+                + request.getFrames().size()
+                + "（时间戳 "
+                + String.format("%.1f", frame.getTimestamp())
+                + " 秒）");
 
         Map<String, Object> imageUrl = new HashMap<>();
         imageUrl.put("url", "data:image/jpeg;base64," + frame.getBase64Image());
@@ -431,7 +478,7 @@ public class AIService {
 
         ### 示例（商品链接采集场景）：
         如果视频中用户在地址栏或搜索框输入了 `https://demo.example.com/products/123456789`
-        
+
         必须输出：
         ```json
         "variables": [
@@ -457,12 +504,12 @@ public class AIService {
         async function main(deviceId, variables) {
           // 从 variables 参数读取，提供默认值
           const productUrl = variables?.productUrl || 'https://demo.example.com/products/123456789';
-          
+
           // ... agent 初始化 ...
-          
+
           // ❌ 绝对禁止硬编码：
           // await agent.aiInput('搜索框', 'https://demo.example.com/products/123456789');
-          
+
           // ✅ 必须使用变量：
           await agent.aiInput('搜索框', productUrl);
         }
@@ -600,7 +647,7 @@ public class AIService {
         }
       }
       resultMap.put("variables", variables);
-      
+
       return resultMap;
     } catch (Exception e) {
       log.error("Failed to parse AI response: {}", jsonText);
@@ -610,9 +657,7 @@ public class AIService {
 
   // ==================== 纯文本重新生成辅助方法 ====================
 
-  /**
-   * 纯文本重新生成的系统提示词（不依赖图片）
-   */
+  /** 纯文本重新生成的系统提示词（不依赖图片） */
   private String getSystemPromptForTextRegeneration() {
     return """
         你是一个 midscene 自动化脚本优化专家。基于用户提供的当前代码和修改要求，优化和改进自动化脚本。
@@ -703,26 +748,24 @@ public class AIService {
         """;
   }
 
-  /**
-   * 构建纯文本请求内容（用于重新生成，不携带图片）
-   */
+  /** 构建纯文本请求内容（用于重新生成，不携带图片） */
   private String buildTextOnlyContent(
       String requirement,
       String additionalPrompt,
       List<SkillContextFrame> frames,
       String currentCode,
       Consumer<String> logger) {
-    
+
     StringBuilder content = new StringBuilder();
-    
+
     // 原始诉求
     content.append("## 原始诉求\n\n").append(requirement).append("\n\n");
-    
+
     // 补充要求
     if (additionalPrompt != null && !additionalPrompt.trim().isEmpty()) {
       content.append("## 修改要求\n\n").append(additionalPrompt).append("\n\n");
     }
-    
+
     // 原始帧信息（文本描述，不含图片）
     if (frames != null && !frames.isEmpty()) {
       content.append("## 操作步骤参考（原始视频帧描述）\n\n");
@@ -740,26 +783,24 @@ public class AIService {
       content.append("\n");
       logger.accept("📝 已加载 " + frames.size() + " 帧的文本描述");
     }
-    
+
     // 当前代码
     if (currentCode != null && !currentCode.isEmpty()) {
       content.append("## 当前代码\n\n```javascript\n").append(currentCode).append("\n```\n\n");
     }
-    
+
     content.append("请基于以上信息，生成优化后的自动化 skill。输出严格遵守 JSON 格式，不要包含任何额外文字。");
-    
+
     return content.toString();
   }
 
   // ==================== 局部重新生成辅助方法 ====================
 
-  /**
-   * 局部重新生成的系统提示词
-   */
+  /** 局部重新生成的系统提示词 */
   private String getSystemPromptForPartialRegeneration(boolean withImages) {
     StringBuilder prompt = new StringBuilder();
     prompt.append("你是一个 midscene 自动化脚本优化专家。基于用户提供的当前代码和修改要求，对指定范围的代码进行优化。\n\n");
-    
+
     if (withImages) {
       prompt.append("## 多模态模式说明\n\n");
       prompt.append("用户提供了参考截图和需要修改的代码范围。请结合截图中的界面信息，理解操作上下文，对指定代码范围进行精准优化。\n\n");
@@ -767,8 +808,9 @@ public class AIService {
       prompt.append("## 纯文本模式说明\n\n");
       prompt.append("用户提供了需要修改的代码范围和修改要求。请基于当前代码，对指定范围进行精准优化。\n\n");
     }
-    
-    prompt.append("""
+
+    prompt.append(
+        """
         ## 【极其重要】midscene API 规范
 
         所有操作必须使用 agent 的 AI 方法，绝对禁止使用原生 Puppeteer/Playwright/浏览器方法。
@@ -847,34 +889,32 @@ public class AIService {
            - 不能修改函数签名
            - 不能调整缩进或格式
            - 不能添加注释（除非在修改范围内）
-        
+
         ### 修改示例：
-        
+
         如果用户选中：
         ```javascript
         await agent.aiTap('搜索框');
         await agent.aiInput('搜索框', productUrl);
         await agent.aiTap('搜索按钮');
         ```
-        
+
         要求改成 aiAct，你应该返回：
         ```javascript
         await agent.aiAction('在搜索框中输入商品链接并点击搜索按钮');
         ```
-        
+
         其他未选中的代码必须保持**一字不差**。
 
         ### 输出要求：
-        
+
         请返回**完整的 main.js 代码**，但只修改标记范围内的代码。系统会对比你的输出和原始代码的差异。
         """);
-    
+
     return prompt.toString();
   }
 
-  /**
-   * 构建多模态局部重新生成内容（携带图片）
-   */
+  /** 构建多模态局部重新生成内容（携带图片） */
   private List<Map<String, Object>> buildPartialContentWithImages(
       String requirement,
       String additionalPrompt,
@@ -882,29 +922,36 @@ public class AIService {
       String currentFullCode,
       io.videodrivenskill.controller.SkillController.CodeRange selectedCodeRange,
       Consumer<String> logger) {
-    
+
     List<Map<String, Object>> content = new ArrayList<>();
     StringBuilder textContent = new StringBuilder();
-    
+
     // 原始诉求
     textContent.append("## 原始诉求\n\n").append(requirement).append("\n\n");
-    
+
     // 补充要求
     if (additionalPrompt != null && !additionalPrompt.trim().isEmpty()) {
       textContent.append("## 修改要求\n\n").append(additionalPrompt).append("\n\n");
     }
-    
+
     // 代码范围说明
-    if (selectedCodeRange != null && selectedCodeRange.start != null && selectedCodeRange.end != null) {
+    if (selectedCodeRange != null
+        && selectedCodeRange.start != null
+        && selectedCodeRange.end != null) {
       textContent.append("## 需要修改的代码范围\n\n");
-      textContent.append("第 ").append(selectedCodeRange.start).append("-").append(selectedCodeRange.end).append(" 行\n\n");
-      
+      textContent
+          .append("第 ")
+          .append(selectedCodeRange.start)
+          .append("-")
+          .append(selectedCodeRange.end)
+          .append(" 行\n\n");
+
       // 提取选中范围的代码
       if (currentFullCode != null && !currentFullCode.isEmpty()) {
         String[] lines = currentFullCode.split("\\n");
         int start = Math.max(0, selectedCodeRange.start - 1);
         int end = Math.min(lines.length, selectedCodeRange.end);
-        
+
         textContent.append("```javascript\n");
         for (int i = start; i < end; i++) {
           textContent.append(String.format("%4d | %s\n", i + 1, lines[i]));
@@ -912,47 +959,47 @@ public class AIService {
         textContent.append("```\n\n");
       }
     }
-    
+
     textContent.append("## 参考截图\n\n以下是用户操作的关键帧截图，请结合这些截图理解操作上下文：\n\n");
     content.add(textPart(textContent.toString()));
-    
+
     // 添加选中的图片
     if (selectedFrames != null) {
       for (int i = 0; i < selectedFrames.size(); i++) {
         GenerateSkillRequest.AnnotatedFrame frame = selectedFrames.get(i);
-        
+
         Map<String, Object> imageUrl = new HashMap<>();
         imageUrl.put("url", "data:image/jpeg;base64," + frame.getBase64Image());
         Map<String, Object> imageSource = new HashMap<>();
         imageSource.put("type", "image_url");
         imageSource.put("image_url", imageUrl);
         content.add(imageSource);
-        
+
         String desc = String.format("参考图 %d（时间戳 %.1f 秒）", i + 1, frame.getTimestamp());
         if (frame.getDescription() != null && !frame.getDescription().isEmpty()) {
           desc += "：" + frame.getDescription();
         }
         content.add(textPart(desc));
-        
+
         logger.accept("🖼️  添加参考图 " + (i + 1) + "/" + selectedFrames.size());
       }
     }
-    
+
     // 发送完整代码，但明确标记每一行的状态
     if (currentFullCode != null && !currentFullCode.isEmpty() && selectedCodeRange != null) {
       String[] lines = currentFullCode.split("\\n");
       int start = Math.max(0, selectedCodeRange.start - 1);
       int end = Math.min(lines.length, selectedCodeRange.end);
-      
+
       StringBuilder markedCode = new StringBuilder();
       markedCode.append("```javascript\n");
       markedCode.append("// 【必须保持原样 - 不要修改】\n");
-      
+
       for (int i = 0; i < lines.length; i++) {
         if (i == start) {
           markedCode.append("\n// 【必须修改 - 根据要求重写以下代码】\n");
         }
-        
+
         // 对于选中范围外的代码，标记为 KEEP
         // 对于选中范围内的代码，标记为 MODIFY
         if (i >= start && i < end) {
@@ -960,24 +1007,24 @@ public class AIService {
         } else {
           markedCode.append(String.format("%4d | [KEEP]   %s\n", i + 1, lines[i]));
         }
-        
+
         if (i == end - 1) {
           markedCode.append("// 【必须保持原样 - 不要修改】\n\n");
         }
       }
       markedCode.append("```\n\n");
-      
+
       content.add(textPart("\n## 完整代码（标记了修改范围）\n\n" + markedCode.toString()));
     }
-    
-    content.add(textPart("重要提示：\n1. 带有 [MODIFY] 标记的行是你需要修改的\n2. 带有 [KEEP] 标记的行必须保持原样，一字不改\n3. 返回完整的 main.js 代码\n4. 除了 [MODIFY] 标记的行，其他行必须与输入完全一致\n\n输出严格遵守 JSON 格式。"));
-    
+
+    content.add(
+        textPart(
+            "重要提示：\n1. 带有 [MODIFY] 标记的行是你需要修改的\n2. 带有 [KEEP] 标记的行必须保持原样，一字不改\n3. 返回完整的 main.js 代码\n4. 除了 [MODIFY] 标记的行，其他行必须与输入完全一致\n\n输出严格遵守 JSON 格式。"));
+
     return content;
   }
 
-  /**
-   * 构建纯文本局部重新生成内容
-   */
+  /** 构建纯文本局部重新生成内容 */
   private String buildPartialTextContent(
       String requirement,
       String additionalPrompt,
@@ -985,40 +1032,42 @@ public class AIService {
       String currentFullCode,
       io.videodrivenskill.controller.SkillController.CodeRange selectedCodeRange,
       Consumer<String> logger) {
-    
+
     StringBuilder content = new StringBuilder();
-    
+
     // 原始诉求
     content.append("## 原始诉求\n\n").append(requirement).append("\n\n");
-    
+
     // 补充要求
     if (additionalPrompt != null && !additionalPrompt.trim().isEmpty()) {
       content.append("## 修改要求\n\n").append(additionalPrompt).append("\n\n");
     }
-    
+
     // 发送完整代码，明确标记每一行的状态
-    if (selectedCodeRange != null && selectedCodeRange.start != null && selectedCodeRange.end != null) {
+    if (selectedCodeRange != null
+        && selectedCodeRange.start != null
+        && selectedCodeRange.end != null) {
       content.append("## 完整代码（标记了修改范围）\n\n");
-      
+
       if (currentFullCode != null && !currentFullCode.isEmpty()) {
         String[] lines = currentFullCode.split("\\n");
         int start = Math.max(0, selectedCodeRange.start - 1);
         int end = Math.min(lines.length, selectedCodeRange.end);
-        
+
         content.append("```javascript\n");
         content.append("// 【必须保持原样 - 不要修改】\n");
-        
+
         for (int i = 0; i < lines.length; i++) {
           if (i == start) {
             content.append("\n// 【必须修改 - 根据要求重写以下代码】\n");
           }
-          
+
           if (i >= start && i < end) {
             content.append(String.format("%4d | [MODIFY] %s\n", i + 1, lines[i]));
           } else {
             content.append(String.format("%4d | [KEEP]   %s\n", i + 1, lines[i]));
           }
-          
+
           if (i == end - 1) {
             content.append("// 【必须保持原样 - 不要修改】\n\n");
           }
@@ -1026,7 +1075,7 @@ public class AIService {
         content.append("```\n\n");
       }
     }
-    
+
     // 帧描述（文本）
     if (contextFrames != null && !contextFrames.isEmpty()) {
       content.append("## 操作步骤参考\n\n");
@@ -1040,22 +1089,20 @@ public class AIService {
       }
       content.append("\n");
     }
-    
+
     content.append("重要提示：\n");
     content.append("1. 带有 [MODIFY] 标记的行是你需要修改的\n");
     content.append("2. 带有 [KEEP] 标记的行必须保持原样，一字不改\n");
     content.append("3. 返回完整的 main.js 代码\n");
     content.append("4. 除了 [MODIFY] 标记的行，其他行必须与输入完全一致\n\n");
     content.append("输出严格遵守 JSON 格式。");
-    
+
     return content.toString();
   }
 
   // ==================== 纯文本模式的数据类 ====================
 
-  /**
-   * 用于纯文本重新生成的帧上下文（不含图片 base64）
-   */
+  /** 用于纯文本重新生成的帧上下文（不含图片 base64） */
   public static class SkillContextFrame {
     public double timestamp;
     public String description;

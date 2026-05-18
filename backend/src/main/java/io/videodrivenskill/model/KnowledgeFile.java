@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 public class KnowledgeFile {
   private String fileName;
   private String mimeType;
-  private String fileType;   // image | document | other
+  private String fileType; // image | document | other
   private long size;
   private String description;
   private String createdAt;

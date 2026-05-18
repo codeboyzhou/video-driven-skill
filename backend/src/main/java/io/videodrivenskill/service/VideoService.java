@@ -5,16 +5,15 @@ import io.videodrivenskill.model.FrameInfo;
 import io.videodrivenskill.model.VideoArchive;
 import io.videodrivenskill.model.VideoUploadResponse;
 import io.videodrivenskill.repository.VideoArchiveRepository;
+import java.io.*;
+import java.nio.file.*;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.*;
-import java.nio.file.*;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -26,7 +25,7 @@ public class VideoService {
 
   @Value("${app.ffmpeg-path}")
   private String ffmpegPath;
-  
+
   private final VideoArchiveRepository videoArchiveRepository;
 
   public VideoUploadResponse uploadVideo(MultipartFile file) throws IOException {
@@ -35,9 +34,10 @@ public class VideoService {
 
     String videoId = UUID.randomUUID().toString();
     String originalFilename = file.getOriginalFilename();
-    String ext = originalFilename != null && originalFilename.contains(".")
-        ? originalFilename.substring(originalFilename.lastIndexOf("."))
-        : ".mp4";
+    String ext =
+        originalFilename != null && originalFilename.contains(".")
+            ? originalFilename.substring(originalFilename.lastIndexOf("."))
+            : ".mp4";
     String filename = videoId + ext;
 
     Path videoPath = uploadPath.resolve(filename);
@@ -47,7 +47,8 @@ public class VideoService {
     try {
       duration = getVideoDuration(videoPath.toString());
     } catch (FFmpegNotAvailableException e) {
-      log.warn("FFmpeg/ffprobe not available during upload, duration will be 0: {}", e.getMessage());
+      log.warn(
+          "FFmpeg/ffprobe not available during upload, duration will be 0: {}", e.getMessage());
     }
 
     return VideoUploadResponse.builder()
@@ -58,7 +59,8 @@ public class VideoService {
         .build();
   }
 
-  public List<FrameInfo> extractFramesAuto(String videoId, int intervalSeconds) throws IOException, InterruptedException {
+  public List<FrameInfo> extractFramesAuto(String videoId, int intervalSeconds)
+      throws IOException, InterruptedException {
     Path videoPath = findVideoPath(videoId);
     if (videoPath == null) throw new FileNotFoundException("Video not found: " + videoId);
 
@@ -71,14 +73,17 @@ public class VideoService {
     return extractFramesAtTimestamps(videoId, videoPath, timestamps);
   }
 
-  public List<FrameInfo> extractFramesManual(String videoId, List<Double> timestamps) throws IOException, InterruptedException {
+  public List<FrameInfo> extractFramesManual(String videoId, List<Double> timestamps)
+      throws IOException, InterruptedException {
     Path videoPath = findVideoPath(videoId);
     if (videoPath == null) throw new FileNotFoundException("Video not found: " + videoId);
 
     return extractFramesAtTimestamps(videoId, videoPath, timestamps);
   }
 
-  private List<FrameInfo> extractFramesAtTimestamps(String videoId, Path videoPath, List<Double> timestamps) throws IOException, InterruptedException {
+  private List<FrameInfo> extractFramesAtTimestamps(
+      String videoId, Path videoPath, List<Double> timestamps)
+      throws IOException, InterruptedException {
     Path framesDir = Paths.get(uploadDir, videoId + "_frames");
     Files.createDirectories(framesDir);
 
@@ -95,28 +100,34 @@ public class VideoService {
         byte[] imageBytes = Files.readAllBytes(framePath);
         String base64 = Base64.getEncoder().encodeToString(imageBytes);
 
-        frames.add(FrameInfo.builder()
-            .frameId(frameId)
-            .timestamp(timestamp)
-            .base64Image(base64)
-            .description("")
-            .build());
+        frames.add(
+            FrameInfo.builder()
+                .frameId(frameId)
+                .timestamp(timestamp)
+                .base64Image(base64)
+                .description("")
+                .build());
       }
     }
 
     return frames;
   }
 
-  private void extractSingleFrame(String videoPath, double timestamp, String outputPath) throws IOException, InterruptedException {
-    List<String> cmd = List.of(
-        ffmpegPath,
-        "-ss", String.format("%.2f", timestamp),
-        "-i", videoPath,
-        "-vframes", "1",
-        "-q:v", "2",
-        "-y",
-        outputPath
-    );
+  private void extractSingleFrame(String videoPath, double timestamp, String outputPath)
+      throws IOException, InterruptedException {
+    List<String> cmd =
+        List.of(
+            ffmpegPath,
+            "-ss",
+            String.format("%.2f", timestamp),
+            "-i",
+            videoPath,
+            "-vframes",
+            "1",
+            "-q:v",
+            "2",
+            "-y",
+            outputPath);
 
     Process process;
     try {
@@ -138,19 +149,23 @@ public class VideoService {
     }
 
     if (process.exitValue() != 0) {
-      throw new IOException("FFmpeg exited with code " + process.exitValue() + " for timestamp: " + timestamp);
+      throw new IOException(
+          "FFmpeg exited with code " + process.exitValue() + " for timestamp: " + timestamp);
     }
   }
 
   public long getVideoDuration(String videoPath) {
     try {
-      List<String> cmd = List.of(
-          "ffprobe",
-          "-v", "quiet",
-          "-show_entries", "format=duration",
-          "-of", "csv=p=0",
-          videoPath
-      );
+      List<String> cmd =
+          List.of(
+              "ffprobe",
+              "-v",
+              "quiet",
+              "-show_entries",
+              "format=duration",
+              "-of",
+              "csv=p=0",
+              videoPath);
 
       ProcessBuilder pb = new ProcessBuilder(cmd);
       pb.redirectErrorStream(false);
@@ -173,14 +188,15 @@ public class VideoService {
     // 1. 先在 uploads 目录查找（原始上传的视频）
     Path uploadPath = Paths.get(uploadDir);
     if (Files.exists(uploadPath)) {
-      Path found = Files.list(uploadPath)
-          .filter(p -> p.getFileName().toString().startsWith(videoId))
-          .filter(p -> !p.toString().contains("_frames"))
-          .findFirst()
-          .orElse(null);
+      Path found =
+          Files.list(uploadPath)
+              .filter(p -> p.getFileName().toString().startsWith(videoId))
+              .filter(p -> !p.toString().contains("_frames"))
+              .findFirst()
+              .orElse(null);
       if (found != null) return found;
     }
-    
+
     // 2. 如果找不到，尝试查找归档视频（videoId 可能是 archiveId）
     Optional<VideoArchive> archiveOpt = videoArchiveRepository.findById(videoId);
     if (archiveOpt.isPresent()) {
@@ -192,7 +208,7 @@ public class VideoService {
         }
       }
     }
-    
+
     // 3. 尝试通过原始 videoId 查找归档视频
     Optional<VideoArchive> archiveByOrigId = videoArchiveRepository.findByVideoId(videoId);
     if (archiveByOrigId.isPresent()) {
@@ -204,7 +220,7 @@ public class VideoService {
         }
       }
     }
-    
+
     return null;
   }
 

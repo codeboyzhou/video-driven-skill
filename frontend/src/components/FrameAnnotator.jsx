@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { fabric } from 'fabric'
+import { Canvas, FabricImage, Group, IText, Line, Rect, Triangle } from 'fabric'
 import useAppStore from '../store/useAppStore.js'
 
 const TOOLS = [
@@ -76,7 +76,7 @@ export default function FrameAnnotator() {
     
     console.log('[FrameAnnotator] Initializing canvas')
 
-    const canvas = new fabric.Canvas(canvasRef.current, {
+    const canvas = new Canvas(canvasRef.current, {
       width: 640,
       height: 360,
       backgroundColor: '#F5F0E8',
@@ -103,7 +103,7 @@ export default function FrameAnnotator() {
       isDrawingRef.current = true
 
       if (toolRef.current === 'text') {
-        const text = new fabric.IText('文字', {
+        const text = new IText('文字', {
           left: pointer.x,
           top: pointer.y,
           fill: '#9A6B3F',
@@ -121,13 +121,13 @@ export default function FrameAnnotator() {
 
       if (toolRef.current === 'arrow') {
         // 用 line + triangle 组合实现带箭头的线，拖拽时先放预览线
-        const line = new fabric.Line([pointer.x, pointer.y, pointer.x, pointer.y], {
+        const line = new Line([pointer.x, pointer.y, pointer.x, pointer.y], {
           stroke: '#B87E6B',
           strokeWidth: 2.5,
           selectable: false,
           evented: false,
         })
-        const head = new fabric.Triangle({
+        const head = new Triangle({
           width: 12, height: 14,
           fill: '#B87E6B',
           left: pointer.x, top: pointer.y,
@@ -141,7 +141,7 @@ export default function FrameAnnotator() {
       }
 
       if (toolRef.current === 'rect') {
-        const rect = new fabric.Rect({
+        const rect = new Rect({
           left: pointer.x,
           top: pointer.y,
           width: 1,
@@ -167,7 +167,7 @@ export default function FrameAnnotator() {
         // 计算箭头角度
         const angle = Math.atan2(pointer.y - line.y1, pointer.x - line.x1) * 180 / Math.PI
         head.set({ left: pointer.x, top: pointer.y, angle: angle + 90 })
-      } else if (obj instanceof fabric.Rect) {
+      } else if (obj instanceof Rect) {
         const s = startPointRef.current
         obj.set({
           width: Math.abs(pointer.x - s.x),
@@ -191,7 +191,7 @@ export default function FrameAnnotator() {
         const { line, head } = obj
         canvas.remove(line)
         canvas.remove(head)
-        const group = new fabric.Group([line, head], { selectable: true })
+        const group = new Group([line, head], { selectable: true })
         canvas.add(group)
         suppressSaveRef.current = false
       }
@@ -216,7 +216,8 @@ export default function FrameAnnotator() {
     suppressSaveRef.current = false
 
     // Clear background first
-    canvas.setBackgroundImage(null, canvas.renderAll.bind(canvas))
+    canvas.backgroundImage = undefined
+    canvas.requestRenderAll()
 
     if (!selectedFrame.base64Image) {
       console.error('[FrameAnnotator] No base64 image data for frame:', selectedFrameId)
@@ -225,14 +226,8 @@ export default function FrameAnnotator() {
 
     const imageUrl = `data:image/jpeg;base64,${selectedFrame.base64Image}`
     
-    fabric.Image.fromURL(
-      imageUrl,
-      (img) => {
-        if (!img) {
-          console.error('[FrameAnnotator] Failed to load image')
-          return
-        }
-        
+    FabricImage.fromURL(imageUrl, { crossOrigin: 'anonymous' })
+      .then((img) => {
         img.set({ selectable: false, evented: false })
         const scale = Math.min(canvas.width / img.width, canvas.height / img.height)
         img.set({
@@ -240,28 +235,29 @@ export default function FrameAnnotator() {
           originX: 'center', originY: 'center',
           left: canvas.width / 2, top: canvas.height / 2,
         })
-        canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas))
+        canvas.backgroundImage = img
+        canvas.requestRenderAll()
         console.log('[FrameAnnotator] Image loaded successfully, scale:', scale)
 
         if (selectedFrame.annotationJson) {
           try {
             const data = JSON.parse(selectedFrame.annotationJson)
-            canvas.loadFromJSON(data, () => {
-              // Double-check: force current tool mode on all restored objects
+            canvas.loadFromJSON(data).then(() => {
               const isSelect = toolRef.current === 'select'
               canvas.forEachObject(obj => {
                 obj.selectable = isSelect
                 obj.evented = isSelect
               })
-              canvas.renderAll()
+              canvas.requestRenderAll()
             })
           } catch (err) {
             console.error('[FrameAnnotator] Failed to load annotations:', err)
           }
         }
-      },
-      { crossOrigin: 'anonymous' }
-    )
+      })
+      .catch((err) => {
+        console.error('[FrameAnnotator] Failed to load image:', err)
+      })
   }, [selectedFrame, selectedFrameId])
 
   // Sync selection mode when tool changes
@@ -289,7 +285,10 @@ export default function FrameAnnotator() {
     suppressSaveRef.current = true
     canvas.clear()
     suppressSaveRef.current = false
-    if (bg) canvas.setBackgroundImage(bg, canvas.renderAll.bind(canvas))
+    if (bg) {
+      canvas.backgroundImage = bg
+      canvas.requestRenderAll()
+    }
     saveAnnotation()
   }
 

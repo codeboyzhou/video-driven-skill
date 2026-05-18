@@ -2,6 +2,10 @@ package io.videodrivenskill.controller;
 
 import io.videodrivenskill.model.KnowledgeFile;
 import io.videodrivenskill.service.KnowledgeService;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ByteArrayResource;
@@ -10,11 +14,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
 
 @Slf4j
 @RestController
@@ -64,9 +63,7 @@ public class KnowledgeController {
   }
 
   @DeleteMapping("/{fileName}")
-  public ResponseEntity<Void> delete(
-      @PathVariable String skillId,
-      @PathVariable String fileName) {
+  public ResponseEntity<Void> delete(@PathVariable String skillId, @PathVariable String fileName) {
     try {
       knowledgeService.deleteFile(skillId, fileName);
       return ResponseEntity.ok().build();
@@ -78,16 +75,14 @@ public class KnowledgeController {
 
   @GetMapping("/{fileName}/download")
   public ResponseEntity<ByteArrayResource> download(
-      @PathVariable String skillId,
-      @PathVariable String fileName) {
+      @PathVariable String skillId, @PathVariable String fileName) {
     try {
       byte[] bytes = knowledgeService.readFileContent(skillId, fileName);
       String mime = knowledgeService.getMimeType(skillId, fileName);
       String encoded = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
       return ResponseEntity.ok()
           .header(HttpHeaders.CONTENT_TYPE, mime)
-          .header(HttpHeaders.CONTENT_DISPOSITION,
-              "inline; filename*=UTF-8''" + encoded)
+          .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename*=UTF-8''" + encoded)
           .body(new ByteArrayResource(bytes));
     } catch (Exception e) {
       log.error("Failed to download knowledge: {}/{}", skillId, fileName, e);
