@@ -1,0 +1,15 @@
+# Optional: use when Docker Hub is slow or unreachable (e.g. mainland China).
+# Usage: docker compose -f docker-compose.yml -f docker-compose.cn.yml up --build
+
+services:
+  backend:
+    build:
+      args:
+        MAVEN_IMAGE: docker.m.daocloud.io/library/maven:3.9-eclipse-temurin-17
+        JRE_IMAGE: docker.m.daocloud.io/library/amazoncorretto:17-alpine-jdk
+
+  frontend:
+    build:
+      args:
+        NODE_IMAGE: docker.m.daocloud.io/library/node:20-alpine
+        NGINX_IMAGE: docker.m.daocloud.io/library/nginx:1.27-alpine
