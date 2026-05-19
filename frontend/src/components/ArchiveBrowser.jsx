@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { fetchVideoArchives, fetchFrameArchives, fetchFramesByVideo, deleteVideoArchive, deleteFrameArchive } from '../api/client.js'
+import SegmentedControl from './SegmentedControl.jsx'
 
 export default function ArchiveBrowser({ onSelectVideo, onSelectFrames }) {
+  const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState('videos')
   const [videos, setVideos] = useState([])
   const [frames, setFrames] = useState([])
@@ -51,7 +54,7 @@ export default function ArchiveBrowser({ onSelectVideo, onSelectFrames }) {
   }
 
   const handleDeleteVideo = async (id) => {
-    if (!confirm('确定要删除这个视频归档吗？关联的帧也会被删除。')) return
+    if (!confirm(t('archive.deleteVideoConfirm'))) return
     try {
       await deleteVideoArchive(id)
       if (selectedVideo?.id === id) {
@@ -60,12 +63,12 @@ export default function ArchiveBrowser({ onSelectVideo, onSelectFrames }) {
       }
       loadData()
     } catch (e) {
-      alert('删除失败: ' + e.message)
+      alert(t('common.deleteFailed', { message: e.message }))
     }
   }
 
   const handleDeleteFrame = async (id) => {
-    if (!confirm('确定要删除这个帧归档吗？')) return
+    if (!confirm(t('archive.deleteFrameConfirm'))) return
     try {
       await deleteFrameArchive(id)
       loadData()
@@ -75,41 +78,35 @@ export default function ArchiveBrowser({ onSelectVideo, onSelectFrames }) {
         setVideoFrames(relatedFrames || [])
       }
     } catch (e) {
-      alert('删除失败: ' + e.message)
+      alert(t('common.deleteFailed', { message: e.message }))
     }
   }
 
   return (
     <div className="card-paper space-y-3 p-4">
       <div className="flex items-center justify-between">
-        <h3 className="eyebrow">归档资源</h3>
-        <div className="flex gap-1">
-          {['videos', 'frames'].map(tab => (
-            <button
-              key={tab}
-              onClick={() => {
-                setActiveTab(tab)
-                setSelectedVideo(null)
-                setVideoFrames([])
-              }}
-              className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
-                activeTab === tab 
-                  ? 'bg-ink-900 text-paper-50' 
-                  : 'text-ink-400 hover:bg-paper-200 hover:text-ink-900'
-              }`}
-            >
-              {tab === 'videos' ? '视频' : '帧'}
-            </button>
-          ))}
-        </div>
+        <h3 className="eyebrow">{t('archive.title')}</h3>
+        <SegmentedControl
+          ariaLabel={t('archive.title')}
+          value={activeTab}
+          onChange={(tab) => {
+            setActiveTab(tab)
+            setSelectedVideo(null)
+            setVideoFrames([])
+          }}
+          options={[
+            { id: 'videos', label: t('archive.videos') },
+            { id: 'frames', label: t('archive.frames') },
+          ]}
+        />
       </div>
 
       {loading ? (
-        <div className="py-4 text-center text-xs text-ink-400">加载中...</div>
+        <div className="py-4 text-center text-xs text-ink-400">{t('common.loading')}</div>
       ) : activeTab === 'videos' ? (
         <div className="max-h-64 space-y-2 overflow-y-auto scrollbar-thin">
           {videos.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-ink-900/12 bg-paper-100/60 py-5 text-center text-xs text-ink-400">暂无保存的视频</div>
+            <div className="rounded-2xl border border-dashed border-ink-900/12 bg-paper-100/60 py-5 text-center text-xs text-ink-400">{t('archive.noVideos')}</div>
           ) : (
             videos.map(video => (
               <div key={video.id} className={`group flex cursor-pointer items-center gap-3 rounded-2xl border p-2 transition-all ${
@@ -119,7 +116,7 @@ export default function ArchiveBrowser({ onSelectVideo, onSelectFrames }) {
                 <div className="flex-1 min-w-0" onClick={() => handleSelectVideo(video)}>
                   <div className="truncate text-xs text-ink-700">{video.filename}</div>
                   <div className="text-[10px] text-ink-400">
-                    {video.duration}s · {formatSize(video.fileSize)} · {video.frameCount || 0}帧
+                    {video.duration}s · {formatSize(video.fileSize)} · {t('home.frameCount', { count: video.frameCount || 0 })}
                   </div>
                 </div>
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -127,13 +124,13 @@ export default function ArchiveBrowser({ onSelectVideo, onSelectFrames }) {
                     onClick={() => handleSelectVideo(video)}
                     className="rounded-full bg-ink-900 px-2 py-1 text-xs text-paper-50 hover:bg-umber-600"
                   >
-                    使用
+                    {t('common.use')}
                   </button>
                   <button
                     onClick={() => handleDeleteVideo(video.id)}
                     className="rounded-full bg-clay-500/90 px-2 py-1 text-xs text-paper-50 hover:bg-clay-500"
                   >
-                    删除
+                    {t('common.delete')}
                   </button>
                 </div>
               </div>
@@ -144,7 +141,7 @@ export default function ArchiveBrowser({ onSelectVideo, onSelectFrames }) {
           {selectedVideo && videoFrames.length > 0 && (
             <div className="mt-3 border-t border-ink-900/10 pt-3">
               <div className="mb-2 text-xs text-ink-400">
-                关联帧 ({videoFrames.length})
+                {t('archive.relatedFrames', { count: videoFrames.length })}
               </div>
               <div className="grid grid-cols-4 gap-1">
                 {videoFrames.map(frame => (
@@ -163,7 +160,7 @@ export default function ArchiveBrowser({ onSelectVideo, onSelectFrames }) {
                 onClick={() => onSelectFrames?.(videoFrames)}
                 className="mt-2 w-full rounded-full bg-sage-700 py-1.5 text-xs text-paper-50 hover:bg-sage-500"
               >
-                使用全部 {videoFrames.length} 个帧
+                {t('archive.useAllFrames', { count: videoFrames.length })}
               </button>
             </div>
           )}
@@ -171,7 +168,7 @@ export default function ArchiveBrowser({ onSelectVideo, onSelectFrames }) {
       ) : (
         <div className="grid max-h-64 grid-cols-3 gap-2 overflow-y-auto scrollbar-thin">
           {frames.length === 0 ? (
-            <div className="col-span-3 rounded-2xl border border-dashed border-ink-900/12 bg-paper-100/60 py-5 text-center text-xs text-ink-400">暂无保存的帧</div>
+            <div className="col-span-3 rounded-2xl border border-dashed border-ink-900/12 bg-paper-100/60 py-5 text-center text-xs text-ink-400">{t('archive.noFrames')}</div>
           ) : (
             frames.map(frame => (
               <div key={frame.id} className="group relative aspect-video overflow-hidden rounded-xl bg-paper-200">
@@ -187,13 +184,13 @@ export default function ArchiveBrowser({ onSelectVideo, onSelectFrames }) {
                     onClick={() => onSelectFrames?.([frame])}
                     className="rounded-full bg-paper-50 px-2 py-1 text-xs text-ink-900"
                   >
-                    使用
+                    {t('common.use')}
                   </button>
                   <button
                     onClick={() => handleDeleteFrame(frame.id)}
                     className="rounded-full bg-clay-500 px-2 py-1 text-xs text-paper-50"
                   >
-                    删除
+                    {t('common.delete')}
                   </button>
                 </div>
                 {frame.description && (

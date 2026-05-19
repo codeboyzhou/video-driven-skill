@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="architecture.md">English</a> · <strong>简体中文</strong>
+  <a href="ARCHITECTURE.md">English</a> · <strong>简体中文</strong>
 </p>
 
 ---

@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import useAppStore from '../store/useAppStore.js'
 import { fetchRecentRequirements, saveRequirement, updateRequirementUseCount } from '../api/client.js'
 
 export default function RequirementHistorySelector() {
+  const { t } = useTranslation()
   const requirement = useAppStore(s => s.requirement)
   const setRequirement = useAppStore(s => s.setRequirement)
   const frames = useAppStore(s => s.frames)
@@ -50,7 +52,7 @@ export default function RequirementHistorySelector() {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <label className="eyebrow">用户诉求</label>
+        <label className="eyebrow">{t('requirement.label')}</label>
         <div className="flex gap-2">
           {requirement.trim() && (
             <button
@@ -58,7 +60,7 @@ export default function RequirementHistorySelector() {
               disabled={saving}
               className="text-xs text-umber-600 hover:text-umber-700 disabled:opacity-50"
             >
-              {saving ? '保存中...' : '保存'}
+              {saving ? t('common.saving') : t('common.save')}
             </button>
           )}
           <button
@@ -68,7 +70,7 @@ export default function RequirementHistorySelector() {
             }}
             className="text-xs text-ink-400 hover:text-ink-700"
           >
-            历史 ({history.length})
+            {t('requirement.history', { count: history.length })}
           </button>
         </div>
       </div>
@@ -76,14 +78,14 @@ export default function RequirementHistorySelector() {
       <textarea
         value={requirement}
         onChange={e => setRequirement(e.target.value)}
-        placeholder="描述你希望 AI 帮你完成的自动化任务..."
+        placeholder={t('requirement.placeholder')}
         className="h-28 w-full resize-none rounded-2xl border border-ink-900/10 bg-paper-100/70 px-3 py-2 text-sm text-ink-900 outline-none transition-colors placeholder:text-ink-400 focus:border-umber-400"
       />
 
       {showSelector && (
         <div className="max-h-48 overflow-y-auto rounded-2xl border border-ink-900/10 bg-paper-50 shadow-soft">
           {history.length === 0 ? (
-            <div className="p-3 text-center text-xs text-ink-400">暂无历史诉求</div>
+            <div className="p-3 text-center text-xs text-ink-400">{t('requirement.noHistory')}</div>
           ) : (
             history.map((item) => (
               <button
@@ -98,7 +100,7 @@ export default function RequirementHistorySelector() {
                   </span>
                   {item.useCount > 0 && (
                     <span className="text-[10px] text-ink-400">
-                      使用 {item.useCount} 次
+                      {t('requirement.usedTimes', { count: item.useCount })}
                     </span>
                   )}
                   <span className="ml-auto text-[10px] text-ink-400">

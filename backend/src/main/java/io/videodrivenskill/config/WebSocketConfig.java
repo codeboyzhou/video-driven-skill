@@ -12,11 +12,10 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 @RequiredArgsConstructor
 public class WebSocketConfig implements WebSocketConfigurer {
 
-    private final SkillRunWebSocketHandler skillRunWebSocketHandler;
+  private final SkillRunWebSocketHandler skillRunWebSocketHandler;
 
-    @Override
-    public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(skillRunWebSocketHandler, "/ws/skill-run")
-                .setAllowedOrigins("*");
-    }
+  @Override
+  public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
+    registry.addHandler(skillRunWebSocketHandler, "/ws/skill-run").setAllowedOrigins("*");
+  }
 }

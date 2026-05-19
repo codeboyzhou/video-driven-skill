@@ -2,25 +2,25 @@
   <strong>English</strong> · <a href="README.zh-CN.md">简体中文</a>
 </p>
 
-<p align="center">
-  <img src="docs/images/homepage.png" alt="Video Driven Skill Homepage" width="720">
-</p>
-
 <h1 align="center">Video Driven Skill</h1>
 
 <p align="center">
-  <strong>Turn operation recordings into reusable automation skills.</strong>
+  <strong>Automate from how you actually work.</strong>
+</p>
+<p align="center">
+  Turn screen recordings into skills you can run, edit, and reuse.
 </p>
 
 <p align="center">
-  <a href="#quick-start">Quick Start</a> · <a href="#features">Features</a> · <a href="#screenshots">Screenshots</a> · <a href="#architecture">Architecture</a> · <a href="#license">License</a>
+  <a href="#quick-start">Quick Start</a> · <a href="#features">Features</a> · <a href="#architecture">Architecture</a> · <a href="#license">License</a>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Java-17-orange?logo=openjdk&logoColor=white" alt="Java 17">
-  <img src="https://img.shields.io/badge/Spring_Boot-3.2-6DB33F?logo=spring&logoColor=white" alt="Spring Boot">
-  <img src="https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white" alt="React">
-  <img src="https://img.shields.io/badge/Vite-5-646CFF?logo=vite&logoColor=white" alt="Vite">
+  <img src="https://img.shields.io/badge/Spring_Boot-4.1-6DB33F?logo=springboot&logoColor=white" alt="Spring Boot 4.1">
+  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white" alt="React 19">
+  <img src="https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white" alt="Vite 8">
+  <img src="https://img.shields.io/badge/Tailwind_CSS-4-38B2AC?logo=tailwindcss&logoColor=white" alt="Tailwind CSS 4">
   <img src="https://img.shields.io/badge/SQLite-3-003B57?logo=sqlite&logoColor=white" alt="SQLite">
   <img src="https://img.shields.io/badge/FFmpeg-007808?logo=ffmpeg&logoColor=white" alt="FFmpeg">
   <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License">
@@ -50,42 +50,6 @@ The project is designed for teams and individuals who want automation to start f
 - **Skill Repository** — Browse, search, import, export (ZIP), and drag-to-reorder your skill collection.
 - **Knowledge Base** — Attach reference images, documents, and notes to each skill for richer context.
 - **Archive System** — Preserve videos, frames, and requirements for building future skills from past material.
-
----
-
-## Screenshots
-
-### Home Dashboard
-
-The entry point for uploading videos, importing skills, and accessing recent resources.
-
-<p align="center">
-  <img src="docs/images/homepage.png" alt="Home Dashboard" width="720">
-</p>
-
-### Frame Extraction
-
-Automatically extract key frames from uploaded videos, or manually pick the moments that matter.
-
-<p align="center">
-  <img src="docs/images/frame-extraction.png" alt="Frame Extraction" width="720">
-</p>
-
-### AI Skill Generation
-
-Annotate frames with intent, configure generation parameters, and let the AI produce a complete automation skill.
-
-<p align="center">
-  <img src="docs/images/skill-generation.png" alt="Skill Generation" width="720">
-</p>
-
-### Skill Repository
-
-Browse, manage, and organize all your generated skills in one place.
-
-<p align="center">
-  <img src="docs/images/skill-repository.png" alt="Skill Repository" width="720">
-</p>
 
 ---
 
@@ -163,7 +127,8 @@ video-driven-skill/
 ├── frontend/                # React + Vite — studio UI
 ├── docker-compose.yml       # One-command Docker deployment
 ├── docker-compose.cn.yml    # Optional mirror overlay (slow Docker Hub)
-├── docs/                    # Documentation & screenshots
+├── ARCHITECTURE.md          # Architecture (English)
+├── ARCHITECTURE.zh-CN.md    # Architecture (Chinese)
 ├── scripts/
 │   ├── run-in-docker.cmd        # Docker start + open browser (Windows)
 │   ├── run-in-docker.sh         # Docker start + open browser (Unix)
@@ -214,7 +179,7 @@ scripts/main.js       # Executable entrypoint
 knowledge/            # Optional reference files
 ```
 
-For a deeper walkthrough, see [docs/architecture.md](docs/architecture.md).
+For a deeper walkthrough, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ---
 

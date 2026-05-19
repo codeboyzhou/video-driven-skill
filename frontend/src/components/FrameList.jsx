@@ -1,7 +1,9 @@
 import { useState, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import useAppStore from '../store/useAppStore.js'
 
 export default function FrameList() {
+  const { t } = useTranslation()
   const frames = useAppStore(s => s.frames)
   const selectedFrameId = useAppStore(s => s.selectedFrameId)
   const setSelectedFrameId = useAppStore(s => s.setSelectedFrameId)
@@ -23,7 +25,7 @@ export default function FrameList() {
   const handleDelete = (e, frameId, index) => {
     e.stopPropagation()
     
-    if (!confirm(`确定要删除第 ${index + 1} 帧吗？`)) {
+    if (!confirm(t('frameList.deleteConfirm', { n: index + 1 }))) {
       return
     }
 
@@ -84,7 +86,7 @@ export default function FrameList() {
   if (frames.length === 0) {
     return (
       <div className='rounded-2xl border border-dashed border-ink-900/12 bg-paper-100/60 py-8 text-center text-sm text-ink-400'>
-        暂无帧
+        {t('frameList.empty')}
       </div>
     )
   }
@@ -107,7 +109,7 @@ export default function FrameList() {
             ${dragOverIndex === index ? 'ring-2 ring-umber-400 ring-offset-2 ring-offset-paper-50' : ''}
             ${dragItemRef.current === index ? 'opacity-50' : ''}`}
           onClick={() => setSelectedFrameId(frame.frameId)}
-          title={`第 ${index + 1} 帧 - 拖拽可调整顺序`}
+          title={t('frameTimeline.frameN', { n: index + 1 })}
         >
           {/* 序号和移动按钮 */}
           <div className='flex flex-col items-center justify-center gap-1'>
@@ -118,7 +120,7 @@ export default function FrameList() {
               <button
                 className='flex h-5 w-5 items-center justify-center rounded-full text-ink-400 transition-colors hover:bg-paper-200 hover:text-ink-900'
                 onClick={(e) => handleMove(e, frame.frameId, 'left')}
-                title='上移'
+                title={t('frameList.moveUp')}
               >
                 ↑
               </button>
@@ -129,7 +131,7 @@ export default function FrameList() {
               <button
                 className='flex h-5 w-5 items-center justify-center rounded-full text-ink-400 transition-colors hover:bg-paper-200 hover:text-ink-900'
                 onClick={(e) => handleMove(e, frame.frameId, 'right')}
-                title='下移'
+                title={t('frameList.moveDown')}
               >
                 ↓
               </button>
@@ -154,12 +156,12 @@ export default function FrameList() {
                 className={`rounded px-1 text-[11px] text-ink-400 transition-colors hover:text-clay-500
                   ${deletingId === frame.frameId ? 'opacity-50' : ''}`}
               >
-                {deletingId === frame.frameId ? '删除中...' : '删除'}
+                {deletingId === frame.frameId ? t('common.deleting') : t('common.delete')}
               </button>
             </div>
             <input
               type='text'
-              placeholder='添加描述（可选）...'
+              placeholder={t('frameList.descriptionPlaceholder')}
               value={frame.description || ''}
               onChange={(e) => updateFrameDescription(frame.frameId, e.target.value)}
               onClick={(e) => e.stopPropagation()}

@@ -1,7 +1,9 @@
-import { useRef, useEffect, useState, useCallback } from 'react'
+import { useRef, useEffect, useState, useCallback, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import Editor from '@monaco-editor/react'
 
 export default function CodeRangeSelector({ code, selectedRange, onSelect }) {
+  const { t } = useTranslation()
   const editorRef = useRef(null)
   const monacoRef = useRef(null)
   const [isSelecting, setIsSelecting] = useState(false)
@@ -148,6 +150,13 @@ export default function CodeRangeSelector({ code, selectedRange, onSelect }) {
   const selectedLineCount = selectedRange 
     ? selectedRange.end - selectedRange.start + 1 
     : 0
+
+  const quickSelectItems = useMemo(() => [
+    { label: t('codeRange.imports'), pattern: /^import|^const.*require/ },
+    { label: t('codeRange.mainFn'), pattern: /async function main|function main/ },
+    { label: t('codeRange.init'), pattern: /agentFrom|new PuppeteerAgent|agent\.ai/ },
+    { label: t('codeRange.dataExtract'), pattern: /aiQuery|return.*data/ },
+  ], [t])
   
   return (
     <div className="h-full flex flex-col">
@@ -156,13 +165,13 @@ export default function CodeRangeSelector({ code, selectedRange, onSelect }) {
         <div className="flex items-center gap-2">
           <span className="text-xs text-slate-500">
             {selectedRange 
-              ? `已选择 ${selectedLineCount} 行`
-              : '拖动选择代码行，或点击行号'
+              ? t('codeRange.selectedLines', { count: selectedLineCount })
+              : t('codeRange.hint')
             }
           </span>
           {selectedRange && (
             <span className="text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">
-              {getSelectedCode().length} 字符
+              {t('codeRange.charCount', { count: getSelectedCode().length })}
             </span>
           )}
         </div>
@@ -171,14 +180,14 @@ export default function CodeRangeSelector({ code, selectedRange, onSelect }) {
             onClick={selectAll}
             className="px-2 py-1 text-xs text-slate-400 hover:text-slate-200 hover:bg-slate-700 rounded transition-colors"
           >
-            全选
+            {t('codeRange.selectAll')}
           </button>
           {selectedRange && (
             <button
               onClick={clearSelection}
               className="px-2 py-1 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors"
             >
-              清除
+              {t('codeRange.clear')}
             </button>
           )}
         </div>
@@ -198,7 +207,7 @@ export default function CodeRangeSelector({ code, selectedRange, onSelect }) {
           }}
           loading={
             <div className="h-full flex items-center justify-center text-slate-500">
-              加载编辑器...
+              {t('codeRange.loadingEditor')}
             </div>
           }
         />
@@ -224,14 +233,9 @@ export default function CodeRangeSelector({ code, selectedRange, onSelect }) {
       {code && (
         <div className="px-3 py-2 bg-slate-800/30 border-t border-slate-800">
           <div className="flex items-center gap-2 text-xs text-slate-500">
-            <span>快速选择:</span>
+            <span>{t('codeRange.quickSelect')}</span>
             <div className="flex gap-1">
-              {[
-                { label: '导入区', pattern: /^import|^const.*require/ },
-                { label: 'main函数', pattern: /async function main|function main/ },
-                { label: '初始化', pattern: /agentFrom|new PuppeteerAgent|agent\.ai/ },
-                { label: '数据提取', pattern: /aiQuery|return.*data/ },
-              ].map(({ label, pattern }) => {
+              {quickSelectItems.map(({ label, pattern }) => {
                 const lines = code.split('\n')
                 const matchLine = lines.findIndex(l => pattern.test(l)) + 1
                 if (matchLine === 0) return null

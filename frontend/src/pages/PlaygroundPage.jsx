@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useTranslation, Trans } from 'react-i18next'
+import LanguageSwitcher from '../components/LanguageSwitcher.jsx'
 import useAppStore from '../store/useAppStore.js'
 import VideoPlayer from '../components/VideoPlayer.jsx'
 import FrameTimeline from '../components/FrameTimeline.jsx'
@@ -19,6 +21,7 @@ import { extractFramesAuto, extractFramesManual, uploadVideo } from '../api/clie
 import { isScreenRecordingSupported } from '../utils/screenRecorder.js'
 
 export default function PlaygroundPage() {
+  const { t } = useTranslation()
   const { videoId } = useParams()
   const navigate = useNavigate()
 
@@ -73,14 +76,14 @@ export default function PlaygroundPage() {
   }
 
   const handleReupload = async (file) => {
-    if (!file || !file.type.startsWith('video/')) { alert('请上传视频文件'); return }
+    if (!file || !file.type.startsWith('video/')) { alert(t('playground.uploadVideoAlert')); return }
     setUploading(true); setUploadProgress(0); reset()
     try {
       const res = await uploadVideo(file, setUploadProgress)
       setVideo(res.videoId, res.filename, res.duration)
       setActiveTab('annotate')
       navigate(`/playground/${res.videoId}`)
-    } catch (e) { alert('上传失败: ' + e.message) }
+    } catch (e) { alert(t('common.uploadFailed', { message: e.message })) }
     finally { setUploading(false) }
   }
 
@@ -94,7 +97,7 @@ export default function PlaygroundPage() {
       setActiveTab('annotate')
       navigate(`/playground/${res.videoId}`)
     } catch (e) {
-      alert('上传失败: ' + e.message)
+      alert(t('common.uploadFailed', { message: e.message }))
       throw e
     } finally {
       setUploading(false)
@@ -113,7 +116,7 @@ export default function PlaygroundPage() {
             <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.6' strokeLinecap='round' strokeLinejoin='round' className='transition-transform duration-300 group-hover:-translate-x-0.5'>
               <path d='M19 12H5M12 19l-7-7 7-7' />
             </svg>
-            <span>返回</span>
+            <span>{t('common.back')}</span>
           </button>
 
           <div className='w-px h-5 bg-ink-900/10'></div>
@@ -145,7 +148,7 @@ export default function PlaygroundPage() {
                   <svg width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.6' strokeLinecap='round' strokeLinejoin='round'>
                     <path d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12' />
                   </svg>
-                  <span>重新上传</span>
+                  <span>{t('playground.reupload')}</span>
                 </>
               )}
             </button>
@@ -153,11 +156,12 @@ export default function PlaygroundPage() {
             <SaveResourceButton />
           </div>
 
-          {/* Tabs */}
-          <div className='ml-auto inline-flex rounded-full bg-paper-200/70 p-1 text-[13px]'>
+          <div className='ml-auto flex items-center gap-3'>
+            <LanguageSwitcher />
+            <div className='inline-flex rounded-full bg-paper-200/70 p-1 text-[13px]'>
             {[
-              { id: 'annotate', label: 'Skill 生成', disabled: videoId === 'history' },
-              { id: 'skill', label: 'Skill 仓库', badge: !!skillId },
+              { id: 'annotate', label: t('playground.tabGenerate'), disabled: videoId === 'history' },
+              { id: 'skill', label: t('playground.tabRepository'), badge: !!skillId },
             ].map(tab => (
               <button
                 key={tab.id}
@@ -173,6 +177,7 @@ export default function PlaygroundPage() {
                 )}
               </button>
             ))}
+            </div>
           </div>
         </div>
       </header>
@@ -195,8 +200,8 @@ export default function PlaygroundPage() {
                 <div className='card-paper overflow-hidden p-3 shadow-lift'>
                   <div className='mb-3 flex items-center justify-between px-1'>
                     <div>
-                      <div className='eyebrow'>Source · 操作视频</div>
-                      <div className='mt-1 text-xs text-ink-400'>播放、定位并截取关键操作瞬间</div>
+                      <div className='eyebrow'>{t('playground.sourceVideo')}</div>
+                      <div className='mt-1 text-xs text-ink-400'>{t('playground.sourceVideoHint')}</div>
                     </div>
                     <div className='tick-row hidden sm:flex'>
                       <span>{videoDuration ? `${Math.round(videoDuration)}s` : '0s'}</span>
@@ -209,18 +214,18 @@ export default function PlaygroundPage() {
                 <div className='card-paper p-4'>
                   <div className='mb-3 flex flex-wrap items-center justify-between gap-3'>
                     <div>
-                      <div className='eyebrow'>Extract · 抽取帧</div>
-                      <div className='mt-1 text-xs text-ink-400'>按固定间隔批量抽帧，或在播放器中截取当前帧</div>
+                      <div className='eyebrow'>{t('playground.extractFrames')}</div>
+                      <div className='mt-1 text-xs text-ink-400'>{t('playground.extractFramesHint')}</div>
                     </div>
                     <div className='flex items-center gap-3'>
                       <div className='flex items-center gap-2 rounded-full border border-ink-900/10 bg-paper-100/70 px-3 py-2 text-sm text-ink-500'>
-                        <span>每</span>
+                        <span>{t('common.per')}</span>
                         <input
                           type='number' min={1} max={60} value={interval}
                           onChange={e => setInterval(Math.max(1, Math.min(60, Number(e.target.value))))}
                           className='w-12 bg-transparent text-center font-mono text-ink-900 outline-none tabular-nums'
                         />
-                        <span>秒</span>
+                        <span>{t('common.secUnit')}</span>
                       </div>
                       <button
                         onClick={handleAutoExtract}
@@ -230,14 +235,14 @@ export default function PlaygroundPage() {
                         {extracting ? (
                           <>
                             <span className='w-3 h-3 rounded-full border-2 border-paper-50/30 border-t-paper-50 animate-spin' />
-                            <span>抽帧中</span>
+                            <span>{t('playground.extracting')}</span>
                           </>
                         ) : (
                           <>
                             <svg width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.8' strokeLinecap='round' strokeLinejoin='round'>
                               <path d='M13 2L4.09 12.97 12 13.5l-1 8.5 8.91-10.97L12 10.5l1-8.5z' />
                             </svg>
-                            <span>自动抽帧</span>
+                            <span>{t('playground.autoExtract')}</span>
                           </>
                         )}
                       </button>
@@ -250,8 +255,8 @@ export default function PlaygroundPage() {
                 <div className='flex-1 card-paper p-4 min-h-0 flex flex-col'>
                   <div className='mb-3 flex items-center justify-between'>
                     <div>
-                      <div className='eyebrow'>Canvas · 标注</div>
-                      <div className='mt-1 text-xs text-ink-400'>用箭头、矩形和文字把视觉证据讲清楚</div>
+                      <div className='eyebrow'>{t('playground.annotate')}</div>
+                      <div className='mt-1 text-xs text-ink-400'>{t('playground.annotateHint')}</div>
                     </div>
                   </div>
                   <div className='flex-1 min-h-0'>
@@ -264,8 +269,8 @@ export default function PlaygroundPage() {
                 <div className='card-paper p-4'>
                   <div className='mb-3 flex items-end justify-between'>
                     <div>
-                      <div className='eyebrow'>Frames · 帧列表</div>
-                      <div className='mt-1 text-xs text-ink-400'>排序、描述每个关键帧</div>
+                      <div className='eyebrow'>{t('playground.frameList')}</div>
+                      <div className='mt-1 text-xs text-ink-400'>{t('playground.frameListHint')}</div>
                     </div>
                     <span className='font-mono text-[11px] text-ink-400'>{frames.length}</span>
                   </div>
@@ -286,7 +291,7 @@ export default function PlaygroundPage() {
             {/* Left sidebar · Skill 仓库（常驻） */}
             <div className='w-72 flex flex-col gap-4 overflow-y-auto scrollbar-thin'>
               <div className='card-paper p-4'>
-                <div className='eyebrow mb-3'>Repository · Skill 仓库</div>
+                <div className='eyebrow mb-3'>{t('playground.repository')}</div>
                 <SkillList />
               </div>
             </div>
@@ -309,10 +314,10 @@ export default function PlaygroundPage() {
                       </svg>
                     </div>
                     <div className='font-display text-2xl text-ink-900 mb-3' style={{ fontVariationSettings: "'opsz' 120" }}>
-                      还没有 Skill
+                      {t('playground.noSkillTitle')}
                     </div>
                     <p className='text-ink-500 text-sm leading-relaxed'>
-                      请先在「Skill 生成」页生成 Skill，或从左侧 Skill 仓库选择已有的。
+                      {t('playground.noSkillHint')}
                     </p>
                   </div>
                 </div>
@@ -345,15 +350,19 @@ export default function PlaygroundPage() {
 }
 
 function EmptyUploadHint({ onClick, onRecord, navigate, setVideo, setActiveTab, addFrames }) {
+  const { t } = useTranslation()
   return (
     <div className='flex-1 flex flex-col items-center justify-center px-8 py-16'>
       <div className='text-center max-w-lg w-full'>
         <div className='eyebrow mb-5'>Step · 01 — Upload</div>
         <h2 className='font-display text-4xl text-ink-900 mb-4' style={{ fontVariationSettings: "'opsz' 120" }}>
-          上传或录制一段<span className='italic text-umber-500'>视频</span>
+          <Trans
+            i18nKey='playground.emptyUploadTitle'
+            components={{ em: <span className='italic text-umber-500' /> }}
+          />
         </h2>
         <p className='text-ink-500 text-sm leading-relaxed mb-10 max-w-sm mx-auto'>
-          任何操作录屏都可以。AI 会分析画面与你的操作流程，生成可直接运行的自动化脚本。
+          {t('playground.emptyUploadHint')}
         </p>
 
         <div className='space-y-3'>
@@ -369,8 +378,8 @@ function EmptyUploadHint({ onClick, onRecord, navigate, setVideo, setActiveTab, 
               </svg>
             </div>
             <div className='flex-1 text-left'>
-              <div className='font-display text-xl text-ink-900'>点击选择文件</div>
-              <div className='text-ink-500 text-sm mt-1'>支持 MP4、MOV、WebM 等格式</div>
+              <div className='font-display text-xl text-ink-900'>{t('playground.pickFile')}</div>
+              <div className='text-ink-500 text-sm mt-1'>{t('playground.pickFileHint')}</div>
             </div>
             <svg width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.5' strokeLinecap='round' strokeLinejoin='round'
               className='text-ink-400 transition-transform duration-500 group-hover:translate-x-1'>
@@ -393,8 +402,8 @@ function EmptyUploadHint({ onClick, onRecord, navigate, setVideo, setActiveTab, 
                 </svg>
               </div>
               <div className='flex-1 text-left'>
-                <div className='font-display text-xl text-ink-900'>开始录屏</div>
-                <div className='text-ink-500 text-sm mt-1'>共享屏幕，预览确认后上传</div>
+                <div className='font-display text-xl text-ink-900'>{t('home.startRecording')}</div>
+                <div className='text-ink-500 text-sm mt-1'>{t('playground.recordHintShort')}</div>
               </div>
               <svg width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.5' strokeLinecap='round' strokeLinejoin='round'
                 className='text-clay-500/70 transition-transform duration-500 group-hover:translate-x-1'>
@@ -406,7 +415,7 @@ function EmptyUploadHint({ onClick, onRecord, navigate, setVideo, setActiveTab, 
         </div>
 
         <div className='mt-10 pt-8 border-t hairline'>
-          <div className='eyebrow mb-4'>Or · 使用已保存资源</div>
+          <div className='eyebrow mb-4'>{t('playground.savedResources')}</div>
           <ArchiveBrowser
             onSelectVideo={(video, frames) => {
               const archiveVideoId = video.id || video.videoId

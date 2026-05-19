@@ -1,3 +1,5 @@
+import i18n from '../i18n/index.js'
+
 export function isScreenRecordingSupported() {
   return (
     typeof window !== 'undefined' &&
@@ -48,9 +50,9 @@ export function formatRecordingSize(bytes) {
 }
 
 export function recordingErrorMessage(error) {
-  if (!error) return '录屏失败，请重试'
-  if (error.name === 'NotAllowedError') return '未授予屏幕共享权限'
-  if (error.name === 'NotFoundError') return '没有可用的屏幕或窗口'
-  if (error.name === 'NotSupportedError') return '当前浏览器不支持该录屏方式'
-  return error.message || '录屏失败，请重试'
+  if (!error) return i18n.t('recorder.errors.generic')
+  if (error.name === 'NotAllowedError') return i18n.t('recorder.errors.NotAllowedError')
+  if (error.name === 'NotFoundError') return i18n.t('recorder.errors.NotFoundError')
+  if (error.name === 'NotSupportedError') return i18n.t('recorder.errors.NotSupportedError')
+  return error.message || i18n.t('recorder.errors.generic')
 }

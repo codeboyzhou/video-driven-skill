@@ -1,26 +1,30 @@
 package io.videodrivenskill.service;
 
-import io.videodrivenskill.model.KnowledgeFile;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.videodrivenskill.model.KnowledgeFile;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.nio.file.*;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
-import java.util.stream.Collectors;
-
-/**
- * 知识库服务：完全基于文件系统，零 DB 依赖
- * 所有文件与元数据一起放在 {skillDir}/knowledge/，随 skill 自包含
- */
+/** 知识库服务：完全基于文件系统，零 DB 依赖 所有文件与元数据一起放在 {skillDir}/knowledge/，随 skill 自包含 */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -32,12 +36,12 @@ public class KnowledgeService {
   private static final String MANIFEST_NAME = "knowledge.json";
 
   // 类型识别
-  private static final Set<String> IMAGE_EXTS = Set.of(
-      "jpg", "jpeg", "png", "gif", "webp", "bmp", "svg"
-  );
-  private static final Set<String> DOC_EXTS = Set.of(
-      "md", "txt", "json", "csv", "yml", "yaml", "pdf", "doc", "docx", "xls", "xlsx", "html", "htm"
-  );
+  private static final Set<String> IMAGE_EXTS =
+      Set.of("jpg", "jpeg", "png", "gif", "webp", "bmp", "svg");
+  private static final Set<String> DOC_EXTS =
+      Set.of(
+          "md", "txt", "json", "csv", "yml", "yaml", "pdf", "doc", "docx", "xls", "xlsx", "html",
+          "htm");
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -54,7 +58,8 @@ public class KnowledgeService {
     }
   }
 
-  public KnowledgeFile uploadFile(String skillId, MultipartFile file, String description) throws IOException {
+  public KnowledgeFile uploadFile(String skillId, MultipartFile file, String description)
+      throws IOException {
     if (file == null || file.isEmpty()) {
       throw new IllegalArgumentException("file is empty");
     }
@@ -67,14 +72,15 @@ public class KnowledgeService {
     Path target = resolveUniqueName(dir, safeName);
     file.transferTo(target.toFile());
 
-    KnowledgeFile entry = KnowledgeFile.builder()
-        .fileName(target.getFileName().toString())
-        .mimeType(Optional.ofNullable(file.getContentType()).orElse("application/octet-stream"))
-        .fileType(detectType(target.getFileName().toString()))
-        .size(Files.size(target))
-        .description(description == null ? "" : description.trim())
-        .createdAt(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
-        .build();
+    KnowledgeFile entry =
+        KnowledgeFile.builder()
+            .fileName(target.getFileName().toString())
+            .mimeType(Optional.ofNullable(file.getContentType()).orElse("application/octet-stream"))
+            .fileType(detectType(target.getFileName().toString()))
+            .size(Files.size(target))
+            .description(description == null ? "" : description.trim())
+            .createdAt(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
+            .build();
 
     List<KnowledgeFile> manifest = listFiles(skillId);
     // 同名覆盖
@@ -85,12 +91,14 @@ public class KnowledgeService {
     return entry;
   }
 
-  public KnowledgeFile updateDescription(String skillId, String fileName, String description) throws IOException {
+  public KnowledgeFile updateDescription(String skillId, String fileName, String description)
+      throws IOException {
     List<KnowledgeFile> manifest = listFiles(skillId);
-    KnowledgeFile found = manifest.stream()
-        .filter(k -> k.getFileName().equals(fileName))
-        .findFirst()
-        .orElseThrow(() -> new FileNotFoundException("knowledge file not found: " + fileName));
+    KnowledgeFile found =
+        manifest.stream()
+            .filter(k -> k.getFileName().equals(fileName))
+            .findFirst()
+            .orElseThrow(() -> new FileNotFoundException("knowledge file not found: " + fileName));
     found.setDescription(description == null ? "" : description.trim());
     writeManifest(skillId, manifest);
     return found;
@@ -141,8 +149,9 @@ public class KnowledgeService {
   }
 
   private void writeManifest(String skillId, List<KnowledgeFile> manifest) throws IOException {
-    manifest.sort(Comparator.comparing(KnowledgeFile::getCreatedAt,
-        Comparator.nullsLast(Comparator.naturalOrder())));
+    manifest.sort(
+        Comparator.comparing(
+            KnowledgeFile::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder())));
     Files.createDirectories(knowledgeDir(skillId));
     String json = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(manifest);
     Files.writeString(manifestPath(skillId), json);
@@ -187,9 +196,7 @@ public class KnowledgeService {
     return name.substring(dot + 1).toLowerCase(Locale.ROOT);
   }
 
-  /**
-   * 拷贝知识库到目标目录（运行器 / 部署使用）
-   */
+  /** 拷贝知识库到目标目录（运行器 / 部署使用） */
   public void copyKnowledgeTo(String skillId, Path targetSkillDir) throws IOException {
     Path src = knowledgeDir(skillId);
     if (!Files.exists(src)) return;

@@ -2,25 +2,25 @@
   <a href="README.md">English</a> · <strong>简体中文</strong>
 </p>
 
-<p align="center">
-  <img src="docs/images/homepage.png" alt="Video Driven Skill 首页" width="720">
-</p>
-
 <h1 align="center">Video Driven Skill</h1>
 
 <p align="center">
-  <strong>将操作录屏转化为可复用的自动化技能。</strong>
+  <strong>自动化，从真实操作开始。</strong>
+</p>
+<p align="center">
+  把屏幕录屏变成可运行、可编辑、可复用的 Skill。
 </p>
 
 <p align="center">
-  <a href="#快速开始">快速开始</a> · <a href="#功能特性">功能特性</a> · <a href="#界面截图">界面截图</a> · <a href="#架构说明">架构说明</a> · <a href="#许可证">许可证</a>
+  <a href="#快速开始">快速开始</a> · <a href="#功能特性">功能特性</a> · <a href="#架构说明">架构说明</a> · <a href="#许可证">许可证</a>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Java-17-orange?logo=openjdk&logoColor=white" alt="Java 17">
-  <img src="https://img.shields.io/badge/Spring_Boot-3.2-6DB33F?logo=spring&logoColor=white" alt="Spring Boot">
-  <img src="https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white" alt="React">
-  <img src="https://img.shields.io/badge/Vite-5-646CFF?logo=vite&logoColor=white" alt="Vite">
+  <img src="https://img.shields.io/badge/Spring_Boot-4.1-6DB33F?logo=springboot&logoColor=white" alt="Spring Boot 4.1">
+  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white" alt="React 19">
+  <img src="https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white" alt="Vite 8">
+  <img src="https://img.shields.io/badge/Tailwind_CSS-4-38B2AC?logo=tailwindcss&logoColor=white" alt="Tailwind CSS 4">
   <img src="https://img.shields.io/badge/SQLite-3-003B57?logo=sqlite&logoColor=white" alt="SQLite">
   <img src="https://img.shields.io/badge/FFmpeg-007808?logo=ffmpeg&logoColor=white" alt="FFmpeg">
   <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License">
@@ -50,42 +50,6 @@ Video Driven Skill 是一套开源的**自动化工作室**：把**屏幕录屏*
 - **技能仓库** — 浏览、搜索、导入、导出（ZIP）、拖拽排序管理技能集合。
 - **知识库** — 为每个技能附加参考图、文档与笔记，丰富上下文。
 - **归档系统** — 保留视频、帧与需求素材，便于日后基于历史物料构建新技能。
-
----
-
-## 界面截图
-
-### 首页总览
-
-上传视频、导入技能、查看最近资源的入口。
-
-<p align="center">
-  <img src="docs/images/homepage.png" alt="首页总览" width="720">
-</p>
-
-### 抽帧
-
-对上传视频自动抽取关键帧，或手动选择关键时刻。
-
-<p align="center">
-  <img src="docs/images/frame-extraction.png" alt="抽帧" width="720">
-</p>
-
-### AI 生成技能
-
-标注画面意图、配置生成参数，由 AI 产出完整自动化技能。
-
-<p align="center">
-  <img src="docs/images/skill-generation.png" alt="AI 生成技能" width="720">
-</p>
-
-### 技能仓库
-
-在同一处浏览、整理与管理所有已生成技能。
-
-<p align="center">
-  <img src="docs/images/skill-repository.png" alt="技能仓库" width="720">
-</p>
 
 ---
 
@@ -163,7 +127,8 @@ video-driven-skill/
 ├── frontend/                # React + Vite — 工作室前端
 ├── docker-compose.yml       # 一键 Docker 部署
 ├── docker-compose.cn.yml    # 可选：国内镜像加速
-├── docs/                    # 文档与截图
+├── ARCHITECTURE.md          # 架构说明（英文）
+├── ARCHITECTURE.zh-CN.md    # 架构说明（中文）
 ├── scripts/
 │   ├── run-in-docker.cmd        # Docker 启动并打开浏览器（Windows）
 │   ├── run-in-docker.sh         # Docker 启动并打开浏览器（Unix）
@@ -214,7 +179,7 @@ scripts/main.js       # 可执行入口
 knowledge/            # 可选参考文件
 ```
 
-更细的说明见 [docs/architecture.zh-CN.md](docs/architecture.zh-CN.md)。
+更细的说明见 [ARCHITECTURE.zh-CN.md](ARCHITECTURE.zh-CN.md)。
 
 ---
 

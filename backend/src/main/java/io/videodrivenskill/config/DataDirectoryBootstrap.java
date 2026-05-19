@@ -1,17 +1,16 @@
 package io.videodrivenskill.config;
 
-import org.springframework.boot.SpringApplication;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import org.springframework.boot.SpringApplication;
 
 /**
- * Runs before {@link SpringApplication} so SQLite can open {@code video-driven-skill.db}
- * under a directory that already exists. Mirrors the path logic in {@code application.yml}
- * ({@code app.data-dir} / {@code VIDEO_DRIVEN_SKILL_HOME}).
+ * Runs before {@link SpringApplication} so SQLite can open {@code video-driven-skill.db} under a
+ * directory that already exists. Mirrors the path logic in {@code application.yml} ({@code
+ * app.data-dir} / {@code VIDEO_DRIVEN_SKILL_HOME}).
  *
  * @author codeboyzhou
  */

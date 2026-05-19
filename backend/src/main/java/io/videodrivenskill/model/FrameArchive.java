@@ -1,13 +1,16 @@
 package io.videodrivenskill.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
-
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "frame_archives")
@@ -16,39 +19,37 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class FrameArchive {
-    
-    @Id
-    private String id;
-    
-    @Column(name = "frame_id")
-    private String frameId;
-    
-    @Column(name = "video_id")
-    private String videoId;
-    
-    @Column(name = "video_archive_id")
-    private String videoArchiveId;
-    
-    private Double timestamp;
-    
-    @Column(name = "image_path")
-    private String imagePath;
-    
-    @Column(name = "thumbnail_path")
-    private String thumbnailPath;
-    
-    private String description;
-    
-    @Column(name = "annotation_json", length = 10000)
-    private String annotationJson;
-    
-    @Column(name = "base64_preview", length = 100000)
-    private String base64Preview;
-    
-    @Transient
-    private String base64Image;
-    
-    @CreationTimestamp
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
+
+  @Id private String id;
+
+  @Column(name = "frame_id")
+  private String frameId;
+
+  @Column(name = "video_id")
+  private String videoId;
+
+  @Column(name = "video_archive_id")
+  private String videoArchiveId;
+
+  private Double timestamp;
+
+  @Column(name = "image_path")
+  private String imagePath;
+
+  @Column(name = "thumbnail_path")
+  private String thumbnailPath;
+
+  private String description;
+
+  @Column(name = "annotation_json", length = 10000)
+  private String annotationJson;
+
+  @Column(name = "base64_preview", length = 100000)
+  private String base64Preview;
+
+  @Transient private String base64Image;
+
+  @CreationTimestamp
+  @Column(name = "created_at")
+  private LocalDateTime createdAt;
 }

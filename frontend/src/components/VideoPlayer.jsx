@@ -1,7 +1,9 @@
 import { useRef, useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { getVideoStreamUrl } from '../api/client.js'
 
 export default function VideoPlayer({ videoId, duration, onTimeSelect }) {
+  const { t } = useTranslation()
   const videoRef = useRef()
   const [currentTime, setCurrentTime] = useState(0)
   const [playing, setPlaying] = useState(false)
@@ -71,7 +73,7 @@ export default function VideoPlayer({ videoId, duration, onTimeSelect }) {
           <button
             onClick={togglePlay}
             className='flex h-9 w-9 items-center justify-center rounded-full bg-ink-900 text-paper-50 shadow-soft transition-all hover:-translate-y-0.5 hover:bg-umber-600'
-            title={playing ? '暂停' : '播放'}
+            title={playing ? t('videoPlayer.pause') : t('videoPlayer.play')}
           >
             {playing ? 'Ⅱ' : '▶'}
           </button>
@@ -84,7 +86,7 @@ export default function VideoPlayer({ videoId, duration, onTimeSelect }) {
             onClick={handleCapture}
             className='ml-auto rounded-full bg-umber-50 px-4 py-2 text-[13px] font-medium text-umber-700 ring-1 ring-umber-300/50 transition-all hover:-translate-y-0.5 hover:bg-umber-100 hover:ring-umber-400/60'
           >
-            截取当前帧
+            {t('videoPlayer.captureFrame')}
           </button>
         </div>
       </div>
